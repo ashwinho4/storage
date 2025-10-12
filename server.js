@@ -13,6 +13,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Add CSP headers to fix console errors
+app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self';");
+    next();
+});
+
 // Configure multer for file uploads (store in memory)
 const storage = multer.memoryStorage();
 const upload = multer({
