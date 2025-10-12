@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: file-upload-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_STORAGE_ENDPOINT
+        value: https://gjihfsstquukbkespeae.storage.supabase.co/storage/v1/s3
+      - key: SUPABASE_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_BUCKET_NAME
+        value: uploads
+

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 File Upload App</h1>
+            <p class="subtitle">Upload any file to secure cloud storage</p>
+        </header>
+        
+        <main>
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h2>Drag & Drop your file here</h2>
+                    <p class="upload-hint">or</p>
+                    <label for="fileInput" class="upload-button">
+                        Choose File
+                    </label>
+                    <input type="file" id="fileInput" hidden>
+                    <p class="file-types">Supports all file types (images, videos, PDFs, documents, etc.)</p>
+                </div>
+
+                <div class="selected-file" id="selectedFile" style="display: none;">
+                    <div class="file-info">
+                        <div class="file-icon">📄</div>
+                        <div class="file-details">
+                            <div class="file-name" id="fileName"></div>
+                            <div class="file-size" id="fileSize"></div>
+                        </div>
+                        <button class="remove-file" id="removeFile">✕</button>
+                    </div>
+                    <button class="upload-submit" id="uploadButton">
+                        <span id="uploadButtonText">Upload File</span>
+                        <span class="upload-spinner" id="uploadSpinner" style="display: none;"></span>
+                    </button>
+                    <div class="progress-bar" id="progressBar" style="display: none;">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="uploads-history" id="uploadsHistory">
+                <h2>Recent Uploads</h2>
+                <div class="uploads-list" id="uploadsList">
+                    <div class="empty-state">No files uploaded yet</div>
+                </div>
+            </div>
+        </main>
+
+        <div class="toast" id="toast">
+            <div class="toast-content"></div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
+
