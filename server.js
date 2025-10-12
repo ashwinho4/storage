@@ -61,8 +61,8 @@ if (!supabaseKey) {
 }
 
 // Check if Dodo Payments API key is available
-if (!process.env.DODO_API_KEY) {
-    console.warn('DODO_API_KEY is not set in environment variables');
+if (!process.env.DODO_PAYMENTS_API_KEY) {
+    console.warn('DODO_PAYMENTS_API_KEY is not set in environment variables');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -189,13 +189,50 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
             return res.status(400).json({ error: 'Invalid product ID' });
         }
 
-        // Store payment record (you might want to create a payments table in Supabase)
-        // For now, we'll just return the checkout URL
-        const checkoutUrl = `https://test.dodopayments.com/checkouts?product_id=${dodoProductId}&quantity=${quantity}&customer_email=${encodeURIComponent(req.user.email)}&return_url=${encodeURIComponent(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`)}&api_key=${process.env.DODO_API_KEY}`;
+        // Create checkout session using Dodo Payments REST API
+        const checkoutResponse = await fetch('https://test.dodopayments.com/checkouts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`
+            },
+            body: JSON.stringify({
+                // Products to sell
+                product_cart: [
+                    {
+                        product_id: dodoProductId,
+                        quantity: quantity
+                    }
+                ],
+                
+                // Pre-fill customer information
+                customer: {
+                    email: req.user.email,
+                    name: req.user.email.split('@')[0] // Use email prefix as name
+                },
+                
+                // Where to redirect after successful payment
+                return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
+                
+                // Custom data for internal tracking
+                metadata: {
+                    user_id: req.user.id,
+                    internal_product_id: productId,
+                    order_id: `order_${Date.now()}_${req.user.id}`
+                }
+            })
+        });
 
+        if (!checkoutResponse.ok) {
+            throw new Error(`Dodo Payments API error! status: ${checkoutResponse.status}`);
+        }
+
+        const session = await checkoutResponse.json();
+        
         res.json({
             success: true,
-            checkoutUrl: checkoutUrl,
+            checkoutUrl: session.checkout_url,
+            sessionId: session.session_id,
             paymentData: paymentData
         });
 
