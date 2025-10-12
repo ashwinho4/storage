@@ -238,38 +238,51 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
         const authMethods = [
             `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
             `Basic ${Buffer.from(process.env.DODO_PAYMENTS_API_KEY + ':').toString('base64')}`,
-            process.env.DODO_PAYMENTS_API_KEY
+            process.env.DODO_PAYMENTS_API_KEY,
+            `sk_test_${process.env.DODO_PAYMENTS_API_KEY}`,
+            `Bearer sk_test_${process.env.DODO_PAYMENTS_API_KEY}`
         ];
         
         let checkoutResponse;
         let lastError;
         
-        for (let i = 0; i < authMethods.length; i++) {
-            try {
-                console.log(`Trying auth method ${i + 1}: ${authMethods[i].substring(0, 20)}...`);
-                
-                checkoutResponse = await fetch('https://test.dodopayments.com/checkouts', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': authMethods[i]
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-                
-                console.log(`Auth method ${i + 1} response status:`, checkoutResponse.status);
-                
-                if (checkoutResponse.ok) {
-                    console.log(`SUCCESS with auth method ${i + 1}!`);
-                    break;
-                } else {
-                    const errorText = await checkoutResponse.text();
-                    console.log(`Auth method ${i + 1} failed:`, errorText);
-                    lastError = errorText;
+        const endpoints = [
+            'https://test.dodopayments.com/checkouts',
+            'https://api.dodopayments.com/v1/checkouts',
+            'https://test.api.dodopayments.com/checkouts'
+        ];
+        
+        let success = false;
+        
+        for (let i = 0; i < authMethods.length && !success; i++) {
+            for (let j = 0; j < endpoints.length && !success; j++) {
+                try {
+                    console.log(`Trying auth method ${i + 1} with endpoint ${j + 1}: ${authMethods[i].substring(0, 20)}... -> ${endpoints[j]}`);
+                    
+                    checkoutResponse = await fetch(endpoints[j], {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authMethods[i]
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+                    
+                    console.log(`Response status:`, checkoutResponse.status);
+                    
+                    if (checkoutResponse.ok) {
+                        console.log(`SUCCESS with auth method ${i + 1} and endpoint ${j + 1}!`);
+                        success = true;
+                        break;
+                    } else {
+                        const errorText = await checkoutResponse.text();
+                        console.log(`Auth method ${i + 1} with endpoint ${j + 1} failed:`, errorText);
+                        lastError = errorText;
+                    }
+                } catch (error) {
+                    console.log(`Auth method ${i + 1} with endpoint ${j + 1} threw error:`, error.message);
+                    lastError = error.message;
                 }
-            } catch (error) {
-                console.log(`Auth method ${i + 1} threw error:`, error.message);
-                lastError = error.message;
             }
         }
 
