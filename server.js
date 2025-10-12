@@ -60,6 +60,11 @@ if (!supabaseKey) {
     process.exit(1);
 }
 
+// Check if Dodo Payments API key is available
+if (!process.env.DODO_API_KEY) {
+    console.warn('DODO_API_KEY is not set in environment variables');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Also keep S3 client as backup
@@ -172,9 +177,21 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
             created_at: new Date().toISOString()
         };
 
+        // Map internal product IDs to Dodo Payments product IDs
+        const productMapping = {
+            'basic_plan': process.env.DODO_PRODUCT_BASIC_ID,
+            'pro_plan': process.env.DODO_PRODUCT_PRO_ID,
+            'enterprise_plan': process.env.DODO_PRODUCT_ENTERPRISE_ID
+        };
+
+        const dodoProductId = productMapping[productId];
+        if (!dodoProductId) {
+            return res.status(400).json({ error: 'Invalid product ID' });
+        }
+
         // Store payment record (you might want to create a payments table in Supabase)
         // For now, we'll just return the checkout URL
-        const checkoutUrl = `https://test.dodopayments.com/checkouts?product_id=${productId}&quantity=${quantity}&customer_email=${encodeURIComponent(req.user.email)}&return_url=${encodeURIComponent(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`)}`;
+        const checkoutUrl = `https://test.dodopayments.com/checkouts?product_id=${dodoProductId}&quantity=${quantity}&customer_email=${encodeURIComponent(req.user.email)}&return_url=${encodeURIComponent(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`)}&api_key=${process.env.DODO_API_KEY}`;
 
         res.json({
             success: true,
