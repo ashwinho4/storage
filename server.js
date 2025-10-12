@@ -3,6 +3,7 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
@@ -28,15 +29,21 @@ const upload = multer({
     }
 });
 
-// Configure S3 client for Supabase storage
+// Configure Supabase client
+const supabaseUrl = 'https://gjihfsstquukbkespeae.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key-here';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Also keep S3 client as backup
 const s3Client = new S3Client({
     endpoint: process.env.SUPABASE_STORAGE_ENDPOINT || 'https://gjihfsstquukbkespeae.storage.supabase.co/storage/v1/s3',
-    region: 'us-east-1', // Supabase uses this default region
+    region: 'auto',
     credentials: {
         accessKeyId: process.env.SUPABASE_ACCESS_KEY_ID,
         secretAccessKey: process.env.SUPABASE_SECRET_ACCESS_KEY
     },
-    forcePathStyle: true
+    forcePathStyle: true,
+    signatureVersion: 'v4'
 });
 
 // Upload endpoint
@@ -47,29 +54,30 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         }
 
         const file = req.file;
-        const bucketName = process.env.SUPABASE_BUCKET_NAME || 'uploads';
+        const bucketName = process.env.SUPABASE_BUCKET_NAME || 'storage';
         
         // Generate unique filename
         const timestamp = Date.now();
         const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         const fileName = `${timestamp}-${sanitizedFilename}`;
 
-        // Upload to Supabase storage via S3 API
-        const command = new PutObjectCommand({
-            Bucket: bucketName,
-            Key: fileName,
-            Body: file.buffer,
-            ContentType: file.mimetype,
-            Metadata: {
-                'original-name': file.originalname,
-                'upload-date': new Date().toISOString()
-            }
-        });
+        // Upload to Supabase storage using native API
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(fileName, file.buffer, {
+                contentType: file.mimetype,
+                cacheControl: '3600',
+                upsert: false
+            });
 
-        await s3Client.send(command);
+        if (error) {
+            throw error;
+        }
 
-        // Construct the public URL
-        const publicUrl = `${process.env.SUPABASE_STORAGE_ENDPOINT.replace('/storage/v1/s3', '')}/storage/v1/object/public/${bucketName}/${fileName}`;
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
 
         res.json({
             success: true,
@@ -79,7 +87,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
                 fileName: fileName,
                 size: file.size,
                 mimetype: file.mimetype,
-                url: publicUrl
+                url: urlData.publicUrl
             }
         });
 
