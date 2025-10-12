@@ -179,9 +179,7 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
 
         // Map internal product IDs to Dodo Payments product IDs
         const productMapping = {
-            'basic_plan': process.env.DODO_PRODUCT_BASIC_ID,
-            'pro_plan': process.env.DODO_PRODUCT_PRO_ID,
-            'enterprise_plan': process.env.DODO_PRODUCT_ENTERPRISE_ID
+            'basic_plan': process.env.DODO_PRODUCT_BASIC_ID
         };
 
         const dodoProductId = productMapping[productId];

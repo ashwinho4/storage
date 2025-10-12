@@ -37,9 +37,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('product_id');
         const planNames = {
-            'basic_plan': 'Basic Plan',
-            'pro_plan': 'Pro Plan', 
-            'enterprise_plan': 'Enterprise Plan'
+            'basic_plan': 'Premium Plan'
         };
         
         if (productId && planNames[productId]) {

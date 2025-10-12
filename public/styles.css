@@ -210,10 +210,10 @@ header h1 {
 }
 
 .payment-plans {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    display: flex;
+    justify-content: center;
     gap: 25px;
-    max-width: 1000px;
+    max-width: 400px;
     margin: 0 auto;
 }
 
