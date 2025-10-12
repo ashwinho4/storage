@@ -487,10 +487,12 @@ class FileUploadApp {
             const response = await fetch('/api/payment/create-checkout', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.authToken}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ productId })
+                body: JSON.stringify({ 
+                    productId,
+                    customerEmail: this.currentUser ? this.currentUser.email : 'guest@example.com'
+                })
             });
 
             const result = await response.json();

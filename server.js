@@ -159,18 +159,18 @@ app.post('/api/auth/logout', async (req, res) => {
 });
 
 // Payment endpoints
-app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => {
+app.post('/api/payment/create-checkout', async (req, res) => {
     try {
-        const { productId, quantity = 1 } = req.body;
+        const { productId, quantity = 1, customerEmail = 'guest@example.com' } = req.body;
         
         if (!productId) {
             return res.status(400).json({ error: 'Product ID is required' });
         }
 
-        // Create payment record in Supabase
+        // Create payment record in Supabase (optional for guest users)
         const paymentData = {
-            user_id: req.user.id,
-            user_email: req.user.email,
+            user_id: 'guest',
+            user_email: customerEmail,
             product_id: productId,
             quantity: quantity,
             status: 'pending',
@@ -193,7 +193,7 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
         console.log('API Key (first 10 chars):', process.env.DODO_PAYMENTS_API_KEY ? process.env.DODO_PAYMENTS_API_KEY.substring(0, 10) + '...' : 'NOT SET');
         console.log('Product ID:', dodoProductId);
         console.log('Frontend URL:', process.env.FRONTEND_URL);
-        console.log('User email:', req.user.email);
+        console.log('Customer email:', customerEmail);
         
         const requestBody = {
             // Products to sell - use IDs from your Dodo Payments dashboard
@@ -206,8 +206,8 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
             
             // Pre-fill customer information to reduce checkout friction
             customer: {
-                email: req.user.email,
-                name: req.user.email.split('@')[0] // Use email prefix as name
+                email: customerEmail,
+                name: customerEmail.split('@')[0] // Use email prefix as name
             },
             
             // Billing address for tax calculation and compliance
@@ -224,9 +224,9 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
             
             // Custom data for your internal tracking
             metadata: {
-                user_id: req.user.id,
+                user_id: 'guest',
                 internal_product_id: productId,
-                order_id: `order_${Date.now()}_${req.user.id}`,
+                order_id: `order_${Date.now()}_guest`,
                 source: 'web_app'
             }
         };
