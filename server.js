@@ -20,6 +20,27 @@ app.use((req, res, next) => {
     next();
 });
 
+// Authentication middleware
+const authenticateToken = async (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access token required' });
+    }
+
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user) {
+            return res.status(403).json({ error: 'Invalid token' });
+        }
+        req.user = user;
+        next();
+    } catch (error) {
+        return res.status(403).json({ error: 'Invalid token' });
+    }
+};
+
 // Configure multer for file uploads (store in memory)
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -53,8 +74,87 @@ const s3Client = new S3Client({
     signatureVersion: 'v4'
 });
 
-// Upload endpoint
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+// Authentication endpoints
+app.post('/api/auth/signup', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        res.json({
+            success: true,
+            message: 'User created successfully',
+            user: data.user
+        });
+
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ error: 'Failed to create user' });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            return res.status(401).json({ error: error.message });
+        }
+
+        res.json({
+            success: true,
+            message: 'Login successful',
+            user: data.user,
+            session: data.session
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Failed to login' });
+    }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+    try {
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        res.json({
+            success: true,
+            message: 'Logout successful'
+        });
+
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Failed to logout' });
+    }
+});
+
+// Protected upload endpoint
+app.post('/api/upload', authenticateToken, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -94,7 +194,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
                 fileName: fileName,
                 size: file.size,
                 mimetype: file.mimetype,
-                url: urlData.publicUrl
+                url: urlData.publicUrl,
+                uploadedBy: req.user.email
             }
         });
 

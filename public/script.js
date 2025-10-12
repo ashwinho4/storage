@@ -2,11 +2,14 @@ class FileUploadApp {
     constructor() {
         this.selectedFile = null;
         this.uploads = this.loadUploads();
+        this.currentUser = null;
+        this.authToken = null;
         this.init();
     }
 
     init() {
         this.bindEvents();
+        this.checkAuthStatus();
         this.displayUploads();
     }
 
@@ -15,6 +18,13 @@ class FileUploadApp {
         const fileInput = document.getElementById('fileInput');
         const uploadButton = document.getElementById('uploadButton');
         const removeFileBtn = document.getElementById('removeFile');
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const authTabs = document.querySelectorAll('.auth-tab');
+        const authModalOverlay = document.getElementById('authModalOverlay');
 
         // File input change
         fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
@@ -32,6 +42,21 @@ class FileUploadApp {
 
         // Click on upload area
         uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Auth button events
+        loginBtn.addEventListener('click', () => this.showAuthModal('login'));
+        signupBtn.addEventListener('click', () => this.showAuthModal('signup'));
+        logoutBtn.addEventListener('click', () => this.logout());
+        authModalOverlay.addEventListener('click', () => this.hideAuthModal());
+
+        // Form submissions
+        loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+        signupForm.addEventListener('submit', (e) => this.handleSignup(e));
+
+        // Tab switching
+        authTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => this.switchAuthTab(e.target.dataset.form));
+        });
     }
 
     handleFileSelect(e) {
@@ -112,8 +137,14 @@ class FileUploadApp {
             formData.append('file', this.selectedFile);
 
             // Upload to server
+            const headers = {};
+            if (this.authToken) {
+                headers['Authorization'] = `Bearer ${this.authToken}`;
+            }
+
             const response = await fetch('/api/upload', {
                 method: 'POST',
+                headers: headers,
                 body: formData
             });
 
@@ -284,6 +315,148 @@ class FileUploadApp {
     loadUploads() {
         const saved = localStorage.getItem('fileUploads');
         return saved ? JSON.parse(saved) : [];
+    }
+
+    // Authentication methods
+    checkAuthStatus() {
+        const token = localStorage.getItem('authToken');
+        const user = localStorage.getItem('currentUser');
+        
+        if (token && user) {
+            this.authToken = token;
+            this.currentUser = JSON.parse(user);
+            this.updateAuthUI();
+        }
+    }
+
+    showAuthModal(form = 'login') {
+        document.getElementById('authForms').style.display = 'flex';
+        this.switchAuthTab(form);
+    }
+
+    hideAuthModal() {
+        document.getElementById('authForms').style.display = 'none';
+    }
+
+    switchAuthTab(form) {
+        // Update tab buttons
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-form="${form}"]`).classList.add('active');
+
+        // Update forms
+        document.querySelectorAll('.auth-form').forEach(formEl => {
+            formEl.classList.remove('active');
+        });
+        document.getElementById(`${form}Form`).classList.add('active');
+    }
+
+    async handleLogin(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.authToken = result.session.access_token;
+                this.currentUser = result.user;
+                
+                localStorage.setItem('authToken', this.authToken);
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                
+                this.updateAuthUI();
+                this.hideAuthModal();
+                this.showToast('Login successful!', 'success');
+                
+                document.getElementById('loginForm').reset();
+            } else {
+                this.showToast(result.error || 'Login failed', 'error');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showToast('Login failed', 'error');
+        }
+    }
+
+    async handleSignup(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+
+        try {
+            const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showToast('Account created successfully! Please login.', 'success');
+                this.switchAuthTab('login');
+                document.getElementById('signupForm').reset();
+            } else {
+                this.showToast(result.error || 'Signup failed', 'error');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            this.showToast('Signup failed', 'error');
+        }
+    }
+
+    async logout() {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+
+        this.authToken = null;
+        this.currentUser = null;
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        
+        this.updateAuthUI();
+        this.showToast('Logged out successfully', 'success');
+    }
+
+    updateAuthUI() {
+        const authButtons = document.querySelector('.auth-buttons');
+        const userInfo = document.getElementById('userInfo');
+        const userEmail = document.getElementById('userEmail');
+        const uploadSection = document.getElementById('uploadSection');
+
+        if (this.currentUser) {
+            authButtons.style.display = 'none';
+            userInfo.style.display = 'flex';
+            userEmail.textContent = this.currentUser.email;
+            uploadSection.style.display = 'block';
+        } else {
+            authButtons.style.display = 'flex';
+            userInfo.style.display = 'none';
+            uploadSection.style.display = 'none';
+        }
     }
 }
 
