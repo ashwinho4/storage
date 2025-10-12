@@ -187,6 +187,52 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
             return res.status(400).json({ error: 'Invalid product ID' });
         }
 
+        // Debug logging
+        console.log('=== DODO PAYMENTS DEBUG ===');
+        console.log('API Key exists:', !!process.env.DODO_PAYMENTS_API_KEY);
+        console.log('API Key (first 10 chars):', process.env.DODO_PAYMENTS_API_KEY ? process.env.DODO_PAYMENTS_API_KEY.substring(0, 10) + '...' : 'NOT SET');
+        console.log('Product ID:', dodoProductId);
+        console.log('Frontend URL:', process.env.FRONTEND_URL);
+        console.log('User email:', req.user.email);
+        
+        const requestBody = {
+            // Products to sell - use IDs from your Dodo Payments dashboard
+            product_cart: [
+                {
+                    product_id: dodoProductId,
+                    quantity: quantity
+                }
+            ],
+            
+            // Pre-fill customer information to reduce checkout friction
+            customer: {
+                email: req.user.email,
+                name: req.user.email.split('@')[0] // Use email prefix as name
+            },
+            
+            // Billing address for tax calculation and compliance
+            billing_address: {
+                street: '123 Main St',
+                city: 'San Francisco',
+                state: 'CA', 
+                country: 'US', // Required: ISO 3166-1 alpha-2 country code
+                zipcode: '94102'
+            },
+            
+            // Where to redirect after successful payment
+            return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
+            
+            // Custom data for your internal tracking
+            metadata: {
+                user_id: req.user.id,
+                internal_product_id: productId,
+                order_id: `order_${Date.now()}_${req.user.id}`,
+                source: 'web_app'
+            }
+        };
+        
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
         // Create checkout session using Dodo Payments REST API
         const checkoutResponse = await fetch('https://test.dodopayments.com/checkouts', {
             method: 'POST',
@@ -194,45 +240,16 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`
             },
-            body: JSON.stringify({
-                // Products to sell - use IDs from your Dodo Payments dashboard
-                product_cart: [
-                    {
-                        product_id: dodoProductId,
-                        quantity: quantity
-                    }
-                ],
-                
-                // Pre-fill customer information to reduce checkout friction
-                customer: {
-                    email: req.user.email,
-                    name: req.user.email.split('@')[0] // Use email prefix as name
-                },
-                
-                // Billing address for tax calculation and compliance
-                billing_address: {
-                    street: '123 Main St',
-                    city: 'San Francisco',
-                    state: 'CA', 
-                    country: 'US', // Required: ISO 3166-1 alpha-2 country code
-                    zipcode: '94102'
-                },
-                
-                // Where to redirect after successful payment
-                return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
-                
-                // Custom data for your internal tracking
-                metadata: {
-                    user_id: req.user.id,
-                    internal_product_id: productId,
-                    order_id: `order_${Date.now()}_${req.user.id}`,
-                    source: 'web_app'
-                }
-            })
+            body: JSON.stringify(requestBody)
         });
 
+        console.log('Response status:', checkoutResponse.status);
+        console.log('Response headers:', Object.fromEntries(checkoutResponse.headers.entries()));
+        
         if (!checkoutResponse.ok) {
-            throw new Error(`HTTP error! status: ${checkoutResponse.status}`);
+            const errorText = await checkoutResponse.text();
+            console.error('Dodo Payments API Error Response:', errorText);
+            throw new Error(`HTTP error! status: ${checkoutResponse.status}, body: ${errorText}`);
         }
 
         const session = await checkoutResponse.json();
@@ -240,6 +257,7 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
         // Log the response (matching your format)
         console.log('Checkout URL:', session.checkout_url);
         console.log('Session ID:', session.session_id);
+        console.log('=== END DEBUG ===');
         
         res.json({
             success: true,
