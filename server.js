@@ -31,7 +31,14 @@ const upload = multer({
 
 // Configure Supabase client
 const supabaseUrl = 'https://gjihfsstquukbkespeae.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key-here';
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+// Check if Supabase key is available
+if (!supabaseKey) {
+    console.error('SUPABASE_ANON_KEY is not set in environment variables');
+    process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Also keep S3 client as backup
@@ -113,5 +120,10 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Visit http://localhost:${PORT} to use the app`);
+    console.log(`Supabase URL: ${supabaseUrl}`);
+    console.log(`Supabase Key configured: ${supabaseKey ? 'Yes' : 'No'}`);
+}).on('error', (err) => {
+    console.error('Server failed to start:', err);
+    process.exit(1);
 });
 
