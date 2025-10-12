@@ -234,14 +234,44 @@ app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => 
         console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
         // Create checkout session using Dodo Payments REST API
-        const checkoutResponse = await fetch('https://test.dodopayments.com/checkouts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`
-            },
-            body: JSON.stringify(requestBody)
-        });
+        // Try different authentication methods
+        const authMethods = [
+            `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
+            `Basic ${Buffer.from(process.env.DODO_PAYMENTS_API_KEY + ':').toString('base64')}`,
+            process.env.DODO_PAYMENTS_API_KEY
+        ];
+        
+        let checkoutResponse;
+        let lastError;
+        
+        for (let i = 0; i < authMethods.length; i++) {
+            try {
+                console.log(`Trying auth method ${i + 1}: ${authMethods[i].substring(0, 20)}...`);
+                
+                checkoutResponse = await fetch('https://test.dodopayments.com/checkouts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authMethods[i]
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                console.log(`Auth method ${i + 1} response status:`, checkoutResponse.status);
+                
+                if (checkoutResponse.ok) {
+                    console.log(`SUCCESS with auth method ${i + 1}!`);
+                    break;
+                } else {
+                    const errorText = await checkoutResponse.text();
+                    console.log(`Auth method ${i + 1} failed:`, errorText);
+                    lastError = errorText;
+                }
+            } catch (error) {
+                console.log(`Auth method ${i + 1} threw error:`, error.message);
+                lastError = error.message;
+            }
+        }
 
         console.log('Response status:', checkoutResponse.status);
         console.log('Response headers:', Object.fromEntries(checkoutResponse.headers.entries()));
