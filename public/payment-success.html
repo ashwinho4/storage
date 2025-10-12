@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - File Upload App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="payment-success">
+            <h1>🎉 Payment Successful!</h1>
+            <p>Thank you for your purchase. Your subscription has been activated.</p>
+            <p>You can now enjoy all the premium features of our file upload service.</p>
+            
+            <div class="success-details">
+                <div class="detail-item">
+                    <strong>Status:</strong> <span class="status-success">Completed</span>
+                </div>
+                <div class="detail-item">
+                    <strong>Date:</strong> <span id="paymentDate"></span>
+                </div>
+                <div class="detail-item">
+                    <strong>Plan:</strong> <span id="planName">Premium Plan</span>
+                </div>
+            </div>
+            
+            <a href="/" class="btn">Return to App</a>
+        </div>
+    </div>
+    
+    <script>
+        // Set current date
+        document.getElementById('paymentDate').textContent = new Date().toLocaleDateString();
+        
+        // Get plan name from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('product_id');
+        const planNames = {
+            'basic_plan': 'Basic Plan',
+            'pro_plan': 'Pro Plan', 
+            'enterprise_plan': 'Enterprise Plan'
+        };
+        
+        if (productId && planNames[productId]) {
+            document.getElementById('planName').textContent = planNames[productId];
+        }
+        
+        // Auto redirect after 10 seconds
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 10000);
+    </script>
+</body>
+</html>

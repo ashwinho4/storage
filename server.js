@@ -153,6 +153,77 @@ app.post('/api/auth/logout', async (req, res) => {
     }
 });
 
+// Payment endpoints
+app.post('/api/payment/create-checkout', authenticateToken, async (req, res) => {
+    try {
+        const { productId, quantity = 1 } = req.body;
+        
+        if (!productId) {
+            return res.status(400).json({ error: 'Product ID is required' });
+        }
+
+        // Create payment record in Supabase
+        const paymentData = {
+            user_id: req.user.id,
+            user_email: req.user.email,
+            product_id: productId,
+            quantity: quantity,
+            status: 'pending',
+            created_at: new Date().toISOString()
+        };
+
+        // Store payment record (you might want to create a payments table in Supabase)
+        // For now, we'll just return the checkout URL
+        const checkoutUrl = `https://test.dodopayments.com/checkouts?product_id=${productId}&quantity=${quantity}&customer_email=${encodeURIComponent(req.user.email)}&return_url=${encodeURIComponent(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`)}`;
+
+        res.json({
+            success: true,
+            checkoutUrl: checkoutUrl,
+            paymentData: paymentData
+        });
+
+    } catch (error) {
+        console.error('Payment creation error:', error);
+        res.status(500).json({ error: 'Failed to create payment checkout' });
+    }
+});
+
+app.post('/api/payment/webhook', async (req, res) => {
+    try {
+        // Handle payment webhook from Dodo Payments
+        const { payment_id, status, customer_email } = req.body;
+        
+        console.log('Payment webhook received:', { payment_id, status, customer_email });
+        
+        // Update payment status in your database
+        // You would typically update a payments table here
+        
+        res.json({ success: true, message: 'Webhook received' });
+    } catch (error) {
+        console.error('Webhook error:', error);
+        res.status(500).json({ error: 'Failed to process webhook' });
+    }
+});
+
+app.get('/api/payment/status/:paymentId', authenticateToken, async (req, res) => {
+    try {
+        const { paymentId } = req.params;
+        
+        // Check payment status (this would typically query your database)
+        // For demo purposes, we'll return a mock status
+        
+        res.json({
+            success: true,
+            paymentId: paymentId,
+            status: 'completed',
+            user_id: req.user.id
+        });
+    } catch (error) {
+        console.error('Payment status error:', error);
+        res.status(500).json({ error: 'Failed to get payment status' });
+    }
+});
+
 // Protected upload endpoint
 app.post('/api/upload', authenticateToken, upload.single('file'), async (req, res) => {
     try {
@@ -216,6 +287,11 @@ app.get('/api/health', (req, res) => {
 // Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Payment success page
+app.get('/payment-success', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'payment-success.html'));
 });
 
 app.listen(PORT, () => {

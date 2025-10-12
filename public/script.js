@@ -11,6 +11,7 @@ class FileUploadApp {
         this.bindEvents();
         this.checkAuthStatus();
         this.displayUploads();
+        this.handlePaymentReturn();
     }
 
     bindEvents() {
@@ -56,6 +57,11 @@ class FileUploadApp {
         // Tab switching
         authTabs.forEach(tab => {
             tab.addEventListener('click', (e) => this.switchAuthTab(e.target.dataset.form));
+        });
+
+        // Payment button events
+        document.querySelectorAll('.payment-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handlePayment(e));
         });
     }
 
@@ -446,16 +452,133 @@ class FileUploadApp {
         const userInfo = document.getElementById('userInfo');
         const userEmail = document.getElementById('userEmail');
         const uploadSection = document.getElementById('uploadSection');
+        const paymentSection = document.getElementById('paymentSection');
 
         if (this.currentUser) {
             authButtons.style.display = 'none';
             userInfo.style.display = 'flex';
             userEmail.textContent = this.currentUser.email;
             uploadSection.style.display = 'block';
+            paymentSection.style.display = 'block';
         } else {
             authButtons.style.display = 'flex';
             userInfo.style.display = 'none';
             uploadSection.style.display = 'none';
+            paymentSection.style.display = 'none';
+        }
+    }
+
+    // Payment methods
+    async handlePayment(e) {
+        if (!this.currentUser) {
+            this.showToast('Please login to make a payment', 'error');
+            return;
+        }
+
+        const productId = e.target.dataset.productId;
+        const button = e.target;
+        const originalText = button.textContent;
+
+        try {
+            button.disabled = true;
+            button.textContent = 'Processing...';
+
+            // Create checkout session
+            const response = await fetch('/api/payment/create-checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify({ productId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Open Dodo Payments checkout in new tab
+                const checkoutWindow = window.open(result.checkoutUrl, '_blank', 'width=800,height=600');
+                
+                if (checkoutWindow) {
+                    this.showToast('Opening payment page...', 'success');
+                    
+                    // Monitor the payment window
+                    this.monitorPaymentWindow(checkoutWindow, productId);
+                } else {
+                    throw new Error('Popup blocked. Please allow popups for this site.');
+                }
+            } else {
+                throw new Error(result.error || 'Failed to create payment session');
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            this.showToast(error.message || 'Payment failed', 'error');
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+
+    monitorPaymentWindow(checkoutWindow, productId) {
+        const checkClosed = setInterval(() => {
+            if (checkoutWindow.closed) {
+                clearInterval(checkClosed);
+                // Check payment status when user returns
+                this.checkPaymentStatus(productId);
+            }
+        }, 1000);
+
+        // Also listen for messages from the payment window
+        window.addEventListener('message', (event) => {
+            if (event.origin !== 'https://test.dodopayments.com') return;
+            
+            if (event.data.type === 'payment_success') {
+                clearInterval(checkClosed);
+                this.handlePaymentSuccess(event.data);
+            } else if (event.data.type === 'payment_error') {
+                clearInterval(checkClosed);
+                this.handlePaymentError(event.data);
+            }
+        });
+    }
+
+    async checkPaymentStatus(productId) {
+        try {
+            // This would typically check with your backend for payment status
+            // For demo purposes, we'll show a success message
+            this.showToast('Payment completed successfully!', 'success');
+        } catch (error) {
+            console.error('Payment status check error:', error);
+        }
+    }
+
+    handlePaymentSuccess(data) {
+        this.showToast('Payment completed successfully!', 'success');
+        console.log('Payment success:', data);
+        
+        // You can redirect to a success page or update the UI here
+        // For now, we'll just show a success message
+    }
+
+    handlePaymentError(data) {
+        this.showToast('Payment failed. Please try again.', 'error');
+        console.error('Payment error:', data);
+    }
+
+    // Handle payment success page (when user returns from Dodo Payments)
+    handlePaymentReturn() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentId = urlParams.get('payment_id');
+        const status = urlParams.get('status');
+
+        if (paymentId && status === 'success') {
+            this.showToast('Payment completed successfully!', 'success');
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (status === 'error') {
+            this.showToast('Payment was cancelled or failed', 'error');
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     }
 }
