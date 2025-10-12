@@ -368,6 +368,17 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Debug endpoint to test API key (remove this after debugging)
+app.get('/api/debug/dodo-key', (req, res) => {
+    const apiKey = process.env.DODO_PAYMENTS_API_KEY;
+    res.json({
+        hasKey: !!apiKey,
+        keyLength: apiKey ? apiKey.length : 0,
+        keyPrefix: apiKey ? apiKey.substring(0, 15) + '...' : 'NOT SET',
+        keySuffix: apiKey ? '...' + apiKey.substring(apiKey.length - 10) : 'NOT SET'
+    });
+});
+
 // Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
