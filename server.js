@@ -161,154 +161,70 @@ app.post('/api/auth/logout', async (req, res) => {
 // Payment endpoints
 app.post('/api/payment/create-checkout', async (req, res) => {
     try {
-        const { productId, quantity = 1, customerEmail = 'guest@example.com' } = req.body;
+        const { productId, quantity = 1, customerEmail = 'customer@example.com', customerName = 'John Doe', phoneNumber = '+1234567890' } = req.body;
         
         if (!productId) {
             return res.status(400).json({ error: 'Product ID is required' });
         }
 
-        // Create payment record in Supabase (optional for guest users)
-        const paymentData = {
-            user_id: 'guest',
-            user_email: customerEmail,
-            product_id: productId,
-            quantity: quantity,
-            status: 'pending',
-            created_at: new Date().toISOString()
-        };
-
-        // Map internal product IDs to Dodo Payments product IDs
-        const productMapping = {
-            'basic_plan': process.env.DODO_PRODUCT_BASIC_ID
-        };
-
-        const dodoProductId = productMapping[productId];
-        if (!dodoProductId) {
-            return res.status(400).json({ error: 'Invalid product ID' });
-        }
-
-        // Debug logging
-        console.log('=== DODO PAYMENTS DEBUG ===');
-        console.log('API Key exists:', !!process.env.DODO_PAYMENTS_API_KEY);
-        console.log('API Key (first 10 chars):', process.env.DODO_PAYMENTS_API_KEY ? process.env.DODO_PAYMENTS_API_KEY.substring(0, 10) + '...' : 'NOT SET');
-        console.log('Product ID:', dodoProductId);
-        console.log('Frontend URL:', process.env.FRONTEND_URL);
-        console.log('Customer email:', customerEmail);
-        
-        const requestBody = {
-            // Products to sell - use IDs from your Dodo Payments dashboard
-            product_cart: [
-                {
-                    product_id: dodoProductId,
-                    quantity: quantity
-                }
-            ],
-            
-            // Pre-fill customer information to reduce checkout friction
-            customer: {
-                email: customerEmail,
-                name: customerEmail.split('@')[0] // Use email prefix as name
+        const response = await fetch('https://test.dodopayments.com/checkouts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`
             },
-            
-            // Billing address for tax calculation and compliance
-            billing_address: {
-                street: '123 Main St',
-                city: 'San Francisco',
-                state: 'CA', 
-                country: 'US', // Required: ISO 3166-1 alpha-2 country code
-                zipcode: '94102'
-            },
-            
-            // Where to redirect after successful payment
-            return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
-            
-            // Custom data for your internal tracking
-            metadata: {
-                user_id: 'guest',
-                internal_product_id: productId,
-                order_id: `order_${Date.now()}_guest`,
-                source: 'web_app'
-            }
-        };
-        
-        console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
-        // Create checkout session using Dodo Payments REST API
-        // Try different authentication methods
-        const authMethods = [
-            `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
-            `Basic ${Buffer.from(process.env.DODO_PAYMENTS_API_KEY + ':').toString('base64')}`,
-            process.env.DODO_PAYMENTS_API_KEY,
-            `sk_test_${process.env.DODO_PAYMENTS_API_KEY}`,
-            `Bearer sk_test_${process.env.DODO_PAYMENTS_API_KEY}`
-        ];
-        
-        let checkoutResponse;
-        let lastError;
-        
-        const endpoints = [
-            'https://test.dodopayments.com/checkouts',
-            'https://api.dodopayments.com/v1/checkouts',
-            'https://test.api.dodopayments.com/checkouts'
-        ];
-        
-        let success = false;
-        
-        for (let i = 0; i < authMethods.length && !success; i++) {
-            for (let j = 0; j < endpoints.length && !success; j++) {
-                try {
-                    console.log(`Trying auth method ${i + 1} with endpoint ${j + 1}: ${authMethods[i].substring(0, 20)}... -> ${endpoints[j]}`);
-                    
-                    checkoutResponse = await fetch(endpoints[j], {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': authMethods[i]
-                        },
-                        body: JSON.stringify(requestBody)
-                    });
-                    
-                    console.log(`Response status:`, checkoutResponse.status);
-                    
-                    if (checkoutResponse.ok) {
-                        console.log(`SUCCESS with auth method ${i + 1} and endpoint ${j + 1}!`);
-                        success = true;
-                        break;
-                    } else {
-                        const errorText = await checkoutResponse.text();
-                        console.log(`Auth method ${i + 1} with endpoint ${j + 1} failed:`, errorText);
-                        lastError = errorText;
+            body: JSON.stringify({
+                // Products to sell - use IDs from your Dodo Payments dashboard
+                product_cart: [
+                    {
+                        product_id: productId, // Replace with your actual product ID
+                        quantity: quantity
                     }
-                } catch (error) {
-                    console.log(`Auth method ${i + 1} with endpoint ${j + 1} threw error:`, error.message);
-                    lastError = error.message;
+                ],
+                
+                // Pre-fill customer information to reduce checkout friction
+                customer: {
+                    email: customerEmail,
+                    name: customerName,
+                    phone_number: phoneNumber
+                },
+                
+                // Billing address for tax calculation and compliance
+                billing_address: {
+                    street: '123 Main St',
+                    city: 'San Francisco',
+                    state: 'CA', 
+                    country: 'US', // Required: ISO 3166-1 alpha-2 country code
+                    zipcode: '94102'
+                },
+                
+                // Where to redirect after successful payment
+                return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
+                
+                // Custom data for your internal tracking
+                metadata: {
+                    order_id: `order_${Date.now()}`,
+                    source: 'web_app'
                 }
-            }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        console.log('Response status:', checkoutResponse.status);
-        console.log('Response headers:', Object.fromEntries(checkoutResponse.headers.entries()));
+        const session = await response.json();
         
-        if (!checkoutResponse.ok) {
-            const errorText = await checkoutResponse.text();
-            console.error('Dodo Payments API Error Response:', errorText);
-            throw new Error(`HTTP error! status: ${checkoutResponse.status}, body: ${errorText}`);
-        }
-
-        const session = await checkoutResponse.json();
-        
-        // Log the response (matching your format)
+        // Redirect your customer to this URL to complete payment
         console.log('Checkout URL:', session.checkout_url);
         console.log('Session ID:', session.session_id);
-        console.log('=== END DEBUG ===');
         
         res.json({
             success: true,
-            checkoutUrl: session.checkout_url,
-            sessionId: session.session_id,
-            paymentData: paymentData
+            checkout_url: session.checkout_url,
+            session_id: session.session_id
         });
-
+        
     } catch (error) {
         console.error('Failed to create checkout session:', error);
         res.status(500).json({ error: 'Failed to create payment checkout' });
@@ -329,25 +245,6 @@ app.post('/api/payment/webhook', async (req, res) => {
     } catch (error) {
         console.error('Webhook error:', error);
         res.status(500).json({ error: 'Failed to process webhook' });
-    }
-});
-
-app.get('/api/payment/status/:paymentId', authenticateToken, async (req, res) => {
-    try {
-        const { paymentId } = req.params;
-        
-        // Check payment status (this would typically query your database)
-        // For demo purposes, we'll return a mock status
-        
-        res.json({
-            success: true,
-            paymentId: paymentId,
-            status: 'completed',
-            user_id: req.user.id
-        });
-    } catch (error) {
-        console.error('Payment status error:', error);
-        res.status(500).json({ error: 'Failed to get payment status' });
     }
 });
 
@@ -411,16 +308,6 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Debug endpoint to test API key (remove this after debugging)
-app.get('/api/debug/dodo-key', (req, res) => {
-    const apiKey = process.env.DODO_PAYMENTS_API_KEY;
-    res.json({
-        hasKey: !!apiKey,
-        keyLength: apiKey ? apiKey.length : 0,
-        keyPrefix: apiKey ? apiKey.substring(0, 15) + '...' : 'NOT SET',
-        keySuffix: apiKey ? '...' + apiKey.substring(apiKey.length - 10) : 'NOT SET'
-    });
-});
 
 // Serve frontend
 app.get('/', (req, res) => {

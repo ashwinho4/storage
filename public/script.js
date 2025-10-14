@@ -483,7 +483,7 @@ class FileUploadApp {
             button.disabled = true;
             button.textContent = 'Processing...';
 
-            // Create checkout session
+            // Create checkout session using the new Dodo Payments implementation
             const response = await fetch('/api/payment/create-checkout', {
                 method: 'POST',
                 headers: {
@@ -491,24 +491,17 @@ class FileUploadApp {
                 },
                 body: JSON.stringify({ 
                     productId,
-                    customerEmail: this.currentUser ? this.currentUser.email : 'guest@example.com'
+                    customerEmail: this.currentUser.email,
+                    customerName: this.currentUser.email.split('@')[0],
+                    phoneNumber: '+1234567890'
                 })
             });
 
             const result = await response.json();
 
             if (result.success) {
-                // Open Dodo Payments checkout in new tab
-                const checkoutWindow = window.open(result.checkoutUrl, '_blank', 'width=800,height=600');
-                
-                if (checkoutWindow) {
-                    this.showToast('Opening payment page...', 'success');
-                    
-                    // Monitor the payment window
-                    this.monitorPaymentWindow(checkoutWindow, productId);
-                } else {
-                    throw new Error('Popup blocked. Please allow popups for this site.');
-                }
+                // Redirect user to checkout URL as specified in the new implementation
+                window.location.href = result.checkout_url;
             } else {
                 throw new Error(result.error || 'Failed to create payment session');
             }
@@ -521,51 +514,6 @@ class FileUploadApp {
         }
     }
 
-    monitorPaymentWindow(checkoutWindow, productId) {
-        const checkClosed = setInterval(() => {
-            if (checkoutWindow.closed) {
-                clearInterval(checkClosed);
-                // Check payment status when user returns
-                this.checkPaymentStatus(productId);
-            }
-        }, 1000);
-
-        // Also listen for messages from the payment window
-        window.addEventListener('message', (event) => {
-            if (event.origin !== 'https://test.dodopayments.com') return;
-            
-            if (event.data.type === 'payment_success') {
-                clearInterval(checkClosed);
-                this.handlePaymentSuccess(event.data);
-            } else if (event.data.type === 'payment_error') {
-                clearInterval(checkClosed);
-                this.handlePaymentError(event.data);
-            }
-        });
-    }
-
-    async checkPaymentStatus(productId) {
-        try {
-            // This would typically check with your backend for payment status
-            // For demo purposes, we'll show a success message
-            this.showToast('Payment completed successfully!', 'success');
-        } catch (error) {
-            console.error('Payment status check error:', error);
-        }
-    }
-
-    handlePaymentSuccess(data) {
-        this.showToast('Payment completed successfully!', 'success');
-        console.log('Payment success:', data);
-        
-        // You can redirect to a success page or update the UI here
-        // For now, we'll just show a success message
-    }
-
-    handlePaymentError(data) {
-        this.showToast('Payment failed. Please try again.', 'error');
-        console.error('Payment error:', data);
-    }
 
     // Handle payment success page (when user returns from Dodo Payments)
     handlePaymentReturn() {

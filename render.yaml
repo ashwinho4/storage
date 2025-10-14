@@ -16,4 +16,6 @@ services:
         sync: false
       - key: SUPABASE_BUCKET_NAME
         value: uploads
+      - key: DODO_PAYMENTS_API_KEY
+        sync: false
 
