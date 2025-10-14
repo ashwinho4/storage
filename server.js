@@ -65,6 +65,11 @@ if (!process.env.DODO_PAYMENTS_API_KEY) {
     console.warn('DODO_PAYMENTS_API_KEY is not set in environment variables');
 }
 
+// Check if Dodo Payments Product ID is available
+if (!process.env.DODO_PRODUCT_ID) {
+    console.warn('DODO_PRODUCT_ID is not set in environment variables - will use fallback from request body');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Also keep S3 client as backup
@@ -163,8 +168,11 @@ app.post('/api/payment/create-checkout', async (req, res) => {
     try {
         const { productId, quantity = 1, customerEmail = 'customer@example.com', customerName = 'John Doe', phoneNumber = '+1234567890' } = req.body;
         
-        if (!productId) {
-            return res.status(400).json({ error: 'Product ID is required' });
+        // Use environment variable for product ID or fallback to request body
+        const dodoProductId = process.env.DODO_PRODUCT_ID || productId;
+        
+        if (!dodoProductId) {
+            return res.status(400).json({ error: 'Product ID is required. Please set DODO_PRODUCT_ID environment variable or provide productId in request body.' });
         }
 
         const response = await fetch('https://test.dodopayments.com/checkouts', {
@@ -177,7 +185,7 @@ app.post('/api/payment/create-checkout', async (req, res) => {
                 // Products to sell - use IDs from your Dodo Payments dashboard
                 product_cart: [
                     {
-                        product_id: productId, // Replace with your actual product ID
+                        product_id: dodoProductId, // Uses environment variable DODO_PRODUCT_ID
                         quantity: quantity
                     }
                 ],
