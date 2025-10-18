@@ -46,6 +46,9 @@ class FileListActivity : AppCompatActivity() {
         binding = ActivityFileListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Initialize AuthRepository with context to restore auth state
+        authRepository.initialize(this)
+        
         setupUI()
         checkPremiumStatus()
         loadFiles()
