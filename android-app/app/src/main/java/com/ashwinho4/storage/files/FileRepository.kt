@@ -158,8 +158,13 @@ class FileRepository {
             val response = SupabaseClient.apiService.listFilesInFolder("storage", listRequest)
             if (response.isSuccessful) {
                 val files = response.body() ?: emptyList()
+                println("DEBUG: Listed ${files.size} files from Supabase")
+                files.forEach { file ->
+                    println("DEBUG: File name: ${file.name}")
+                }
                 // Return only the file names without the userId prefix
-                val fileNames = files.map { it.name }
+                val fileNames = files.map { it.name.removePrefix("$userId/") }
+                println("DEBUG: Processed file names: $fileNames")
                 Result.success(fileNames)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "List failed"
