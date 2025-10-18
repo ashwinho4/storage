@@ -146,6 +146,9 @@ class FileUploadApp {
             const headers = {};
             if (this.authToken) {
                 headers['Authorization'] = `Bearer ${this.authToken}`;
+                console.log('Sending token:', this.authToken ? `${this.authToken.substring(0, 20)}...` : 'null');
+            } else {
+                console.log('No auth token available');
             }
 
             const response = await fetch('/api/upload', {
