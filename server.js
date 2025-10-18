@@ -276,10 +276,10 @@ app.post('/api/upload', authenticateToken, upload.single('file'), async (req, re
         const file = req.file;
         const bucketName = process.env.SUPABASE_BUCKET_NAME || 'storage';
         
-        // Generate unique filename
+        // Generate unique filename with user ID prefix for isolation
         const timestamp = Date.now();
         const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const fileName = `${timestamp}-${sanitizedFilename}`;
+        const fileName = `${req.user.id}/${timestamp}-${sanitizedFilename}`;
 
         // Upload to Supabase storage using native API
         const { data, error } = await supabase.storage
@@ -328,10 +328,10 @@ app.get('/api/list', authenticateToken, async (req, res) => {
         
         const bucketName = process.env.SUPABASE_BUCKET_NAME || 'storage';
         
-        // List files from Supabase Storage
+        // List files from Supabase Storage with user ID prefix
         const { data, error } = await supabase.storage
             .from(bucketName)
-            .list('', {
+            .list(req.user.id, {
                 limit: 100,
                 offset: 0
             });

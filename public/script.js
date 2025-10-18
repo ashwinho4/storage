@@ -7,10 +7,10 @@ class FileUploadApp {
         this.init();
     }
 
-    init() {
+    async init() {
         this.bindEvents();
         this.checkAuthStatus();
-        this.displayUploads();
+        await this.refreshFiles();
         this.handlePaymentReturn();
     }
 
@@ -160,8 +160,8 @@ class FileUploadApp {
             const result = await response.json();
 
             if (result.success) {
-                // Save upload to history
-                this.addUpload(result.file);
+                // Refresh file list from server
+                await this.refreshFiles();
                 
                 // Show success message
                 this.showToast('File uploaded successfully!', 'success');
@@ -365,9 +365,45 @@ Endpoint: /api/upload
         localStorage.setItem('fileUploads', JSON.stringify(this.uploads));
     }
 
-    loadUploads() {
-        const saved = localStorage.getItem('fileUploads');
-        return saved ? JSON.parse(saved) : [];
+    async refreshFiles() {
+        this.uploads = await this.loadUploads();
+        this.displayUploads();
+    }
+
+    async loadUploads() {
+        // If not logged in, return empty array
+        if (!this.authToken) {
+            return [];
+        }
+
+        try {
+            const response = await fetch('/api/list', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                // Convert Supabase storage files to upload format
+                return result.files.map(file => ({
+                    id: file.id,
+                    name: file.name,
+                    url: `https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/public/storage/${this.currentUser.id}/${file.name}`,
+                    size: file.metadata?.size || 0,
+                    type: file.metadata?.mimetype || 'unknown',
+                    uploadedAt: file.created_at
+                }));
+            } else {
+                console.error('Failed to load files:', response.statusText);
+                return [];
+            }
+        } catch (error) {
+            console.error('Error loading files:', error);
+            return [];
+        }
     }
 
     // Authentication methods
