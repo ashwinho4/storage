@@ -12,10 +12,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.ashwinho4.storage.R
 import com.ashwinho4.storage.SupabaseClient
+import com.ashwinho4.storage.UserProfile
 import com.ashwinho4.storage.auth.AuthRepository
 import com.ashwinho4.storage.databinding.ActivityFileListBinding
 import com.ashwinho4.storage.premium.PremiumRepository
-import com.ashwinho4.storage.premium.UserProfile
 import kotlinx.coroutines.launch
 
 class FileListActivity : AppCompatActivity() {
