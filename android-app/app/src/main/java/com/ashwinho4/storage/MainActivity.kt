@@ -21,6 +21,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Initialize AuthRepository with context
+        authRepository.initialize(this)
+        
         checkAuthStatus()
     }
     

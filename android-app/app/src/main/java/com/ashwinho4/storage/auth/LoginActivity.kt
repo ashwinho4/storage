@@ -23,6 +23,9 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Initialize AuthRepository with context
+        authRepository.initialize(this)
+        
         setupClickListeners()
     }
     
