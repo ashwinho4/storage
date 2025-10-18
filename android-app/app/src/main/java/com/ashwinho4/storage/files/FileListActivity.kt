@@ -140,9 +140,20 @@ class FileListActivity : AppCompatActivity() {
     
     private fun loadFiles() {
         lifecycleScope.launch {
-            // Check if user is logged in first
-            if (!authRepository.isLoggedIn()) {
+            // Check if user is logged in first with debug info
+            val isLoggedIn = authRepository.isLoggedIn()
+            val currentUser = authRepository.getCurrentUser()
+            
+            val debugAuthInfo = """
+                Auth Debug Info:
+                isLoggedIn(): $isLoggedIn
+                currentUser: $currentUser
+                currentUser.email: ${currentUser?.email ?: "null"}
+            """.trimIndent()
+            
+            if (!isLoggedIn) {
                 Toast.makeText(this@FileListActivity, "Please login to access files", Toast.LENGTH_SHORT).show()
+                showDebugDialog("Authentication Debug", debugAuthInfo)
                 return@launch
             }
             
@@ -152,7 +163,7 @@ class FileListActivity : AppCompatActivity() {
                 }
                 .onFailure { error ->
                     Toast.makeText(this@FileListActivity, "Failed to load files: ${error.message}", Toast.LENGTH_SHORT).show()
-                    showDebugDialog("Load Files Error", error.message ?: "Unknown error")
+                    showDebugDialog("Load Files Error", "${error.message}\n\n$debugAuthInfo")
                 }
         }
     }
