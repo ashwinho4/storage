@@ -3,13 +3,6 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-repositories {
-    google()
-    mavenCentral()
-    maven { url "https://jitpack.io" }
-    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
-}
-
 android {
     namespace 'com.ashwinho4.storage'
     compileSdk 34
