@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object SupabaseClient {
     
     private const val SUPABASE_URL = "https://gjihfsstquukbkespeae.supabase.co"
-    private const val SERVER_URL = "http://10.0.2.2:3000" // Android emulator localhost
+    private const val SERVER_URL = "http://192.168.1.110:3000" // Local network IP
     private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqaWhmc3N0cXV1a2JrZXNwZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMjc5ODAsImV4cCI6MjA3NTcwMzk4MH0.xjRPkZB7tbQZ4ahO8zLTy0Cap1K59RJbhCBnBDptDcg"
     
     private var userToken: String? = null

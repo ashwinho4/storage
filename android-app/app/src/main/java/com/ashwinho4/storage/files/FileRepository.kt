@@ -166,7 +166,7 @@ class FileRepository {
                         DEBUG INFO:
                         Status Code: ${response.code()}
                         Error Body: $errorBody
-                        Full API URL: http://10.0.2.2:3000/api/list
+                        Full API URL: http://192.168.1.110:3000/api/list
                         Endpoint: /api/list
                         Issue: Authentication failed - user may not be logged in or token expired
                         Solution: Please login again
@@ -177,7 +177,7 @@ class FileRepository {
                         DEBUG INFO:
                         Status Code: ${response.code()}
                         Error Body: $errorBody
-                        Full API URL: http://10.0.2.2:3000/api/list
+                        Full API URL: http://192.168.1.110:3000/api/list
                         Endpoint: /api/list
                     """.trimIndent()
                     Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
