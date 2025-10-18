@@ -140,70 +140,62 @@ class FileRepository {
         }
     }
     
-    suspend fun listFiles(): Result<List<String>> {
-        return try {
-            val response = SupabaseClient.apiService.listFiles("storage")
-            if (response.isSuccessful) {
-                val files = response.body() ?: emptyList()
-                val fileNames = files.map { it.name }
-                Result.success(fileNames)
-            } else {
-                val errorBody = response.errorBody()?.string() ?: "List failed"
-                
-                // Check if it's an authentication issue (401/403)
-                if (response.code() == 401 || response.code() == 403) {
-                    val debugInfo = """
-                        DEBUG INFO:
-                        Status Code: ${response.code()}
-                        Error Body: $errorBody
-                        Bucket: storage
-                        Issue: Authentication failed - user may not be logged in or token expired
-                        Solution: Please login again
-                    """.trimIndent()
-                    Result.failure(Exception("Authentication failed - please login again\n\n$debugInfo"))
-                } else if (response.code() == 404 && errorBody.contains("Bucket not found")) {
-                    val bucketResponse = SupabaseClient.apiService.createBucket(
-                        com.ashwinho4.storage.CreateBucketRequest(
-                            id = "storage",
-                            name = "storage",
-                            public = true
-                        )
-                    )
-                    
-                    if (bucketResponse.isSuccessful) {
-                        // Bucket created successfully, retry listing
-                        val retryResponse = SupabaseClient.apiService.listFiles("storage")
-                        if (retryResponse.isSuccessful) {
-                            val files = retryResponse.body() ?: emptyList()
-                            val fileNames = files.map { it.name }
-                            Result.success(fileNames)
-                        } else {
-                            val retryError = retryResponse.errorBody()?.string() ?: "List failed after bucket creation"
-                            Result.failure(Exception("List failed after bucket creation: $retryError"))
-                        }
-                    } else {
-                        val bucketError = bucketResponse.errorBody()?.string() ?: "Bucket creation failed"
-                        val debugInfo = """
-                            DEBUG INFO:
-                            Status Code: ${response.code()}
-                            Error Body: $errorBody
-                            Bucket: storage
-                            Bucket Creation Failed: $bucketError
-                        """.trimIndent()
-                        Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
-                    }
-                } else {
-                    val debugInfo = """
-                        DEBUG INFO:
-                        Status Code: ${response.code()}
-                        Error Body: $errorBody
-                        Bucket: storage
-                    """.trimIndent()
-                    Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+           suspend fun listFiles(): Result<List<String>> {
+               return try {
+                   // First, try to create the bucket to ensure it exists
+                   val bucketResponse = SupabaseClient.apiService.createBucket(
+                       com.ashwinho4.storage.CreateBucketRequest(
+                           id = "storage",
+                           name = "storage",
+                           public = true
+                       )
+                   )
+                   
+                   // Don't fail if bucket already exists (409 conflict is expected)
+                   if (!bucketResponse.isSuccessful && bucketResponse.code() != 409) {
+                       val bucketError = bucketResponse.errorBody()?.string() ?: "Bucket creation failed"
+                       val debugInfo = """
+                           DEBUG INFO:
+                           Bucket Creation Status: ${bucketResponse.code()}
+                           Bucket Creation Error: $bucketError
+                           Bucket: storage
+                       """.trimIndent()
+                       Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
+                   }
+                   
+                   // Now try to list files
+                   val response = SupabaseClient.apiService.listFiles("storage")
+                   if (response.isSuccessful) {
+                       val files = response.body() ?: emptyList()
+                       val fileNames = files.map { it.name }
+                       Result.success(fileNames)
+                   } else {
+                       val errorBody = response.errorBody()?.string() ?: "List failed"
+                       
+                       // Check if it's an authentication issue (401/403)
+                       if (response.code() == 401 || response.code() == 403) {
+                           val debugInfo = """
+                               DEBUG INFO:
+                               Status Code: ${response.code()}
+                               Error Body: $errorBody
+                               Bucket: storage
+                               Issue: Authentication failed - user may not be logged in or token expired
+                               Solution: Please login again
+                           """.trimIndent()
+                           Result.failure(Exception("Authentication failed - please login again\n\n$debugInfo"))
+                       } else {
+                           val debugInfo = """
+                               DEBUG INFO:
+                               Status Code: ${response.code()}
+                               Error Body: $errorBody
+                               Bucket: storage
+                               Bucket Creation Status: ${bucketResponse.code()}
+                           """.trimIndent()
+                           Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
+                       }
+                   }
+               } catch (e: Exception) {
+                   Result.failure(e)
+               }
+           }
 }
