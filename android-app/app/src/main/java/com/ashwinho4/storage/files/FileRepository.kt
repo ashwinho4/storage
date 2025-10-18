@@ -142,28 +142,7 @@ class FileRepository {
     
            suspend fun listFiles(): Result<List<String>> {
                return try {
-                   // First, try to create the bucket to ensure it exists
-                   val bucketResponse = SupabaseClient.apiService.createBucket(
-                       com.ashwinho4.storage.CreateBucketRequest(
-                           id = "storage",
-                           name = "storage",
-                           public = true
-                       )
-                   )
-                   
-                   // Don't fail if bucket already exists (409 conflict is expected)
-                   if (!bucketResponse.isSuccessful && bucketResponse.code() != 409) {
-                       val bucketError = bucketResponse.errorBody()?.string() ?: "Bucket creation failed"
-                       val debugInfo = """
-                           DEBUG INFO:
-                           Bucket Creation Status: ${bucketResponse.code()}
-                           Bucket Creation Error: $bucketError
-                           Bucket: storage
-                       """.trimIndent()
-                       return Result.failure<List<String>>(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
-                   }
-                   
-                   // Now try to list files
+                   // Just try to list files directly - bucket already exists
                    val response = SupabaseClient.apiService.listFiles("storage")
                    if (response.isSuccessful) {
                        val files = response.body() ?: emptyList()
@@ -189,7 +168,6 @@ class FileRepository {
                                Status Code: ${response.code()}
                                Error Body: $errorBody
                                Bucket: storage
-                               Bucket Creation Status: ${bucketResponse.code()}
                            """.trimIndent()
                            Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
                        }
