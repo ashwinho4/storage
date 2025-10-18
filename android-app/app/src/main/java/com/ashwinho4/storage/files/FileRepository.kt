@@ -98,14 +98,42 @@ class FileRepository {
                 Result.success(Unit)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Delete failed"
-                val debugInfo = """
-                    DEBUG INFO:
-                    Status Code: ${response.code()}
-                    Error Body: $errorBody
-                    File Name: $fileName
-                    Bucket: storage
-                """.trimIndent()
-                Result.failure(Exception("Delete failed: $errorBody\n\n$debugInfo"))
+                
+                // If bucket doesn't exist, try to create it first
+                if (response.code() == 404 && errorBody.contains("Bucket not found")) {
+                    val bucketResponse = SupabaseClient.apiService.createBucket(
+                        com.ashwinho4.storage.CreateBucketRequest(
+                            id = "storage",
+                            name = "storage",
+                            public = true
+                        )
+                    )
+                    
+                    if (bucketResponse.isSuccessful) {
+                        // Bucket created successfully, but file doesn't exist to delete
+                        Result.success(Unit) // File already "deleted" since bucket was empty
+                    } else {
+                        val bucketError = bucketResponse.errorBody()?.string() ?: "Bucket creation failed"
+                        val debugInfo = """
+                            DEBUG INFO:
+                            Status Code: ${response.code()}
+                            Error Body: $errorBody
+                            File Name: $fileName
+                            Bucket: storage
+                            Bucket Creation Failed: $bucketError
+                        """.trimIndent()
+                        Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
+                    }
+                } else {
+                    val debugInfo = """
+                        DEBUG INFO:
+                        Status Code: ${response.code()}
+                        Error Body: $errorBody
+                        File Name: $fileName
+                        Bucket: storage
+                    """.trimIndent()
+                    Result.failure(Exception("Delete failed: $errorBody\n\n$debugInfo"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -121,13 +149,48 @@ class FileRepository {
                 Result.success(fileNames)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "List failed"
-                val debugInfo = """
-                    DEBUG INFO:
-                    Status Code: ${response.code()}
-                    Error Body: $errorBody
-                    Bucket: storage
-                """.trimIndent()
-                Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
+                
+                // If bucket doesn't exist, try to create it
+                if (response.code() == 404 && errorBody.contains("Bucket not found")) {
+                    val bucketResponse = SupabaseClient.apiService.createBucket(
+                        com.ashwinho4.storage.CreateBucketRequest(
+                            id = "storage",
+                            name = "storage",
+                            public = true
+                        )
+                    )
+                    
+                    if (bucketResponse.isSuccessful) {
+                        // Bucket created successfully, retry listing
+                        val retryResponse = SupabaseClient.apiService.listFiles()
+                        if (retryResponse.isSuccessful) {
+                            val files = retryResponse.body() ?: emptyList()
+                            val fileNames = files.map { it.name }
+                            Result.success(fileNames)
+                        } else {
+                            val retryError = retryResponse.errorBody()?.string() ?: "List failed after bucket creation"
+                            Result.failure(Exception("List failed after bucket creation: $retryError"))
+                        }
+                    } else {
+                        val bucketError = bucketResponse.errorBody()?.string() ?: "Bucket creation failed"
+                        val debugInfo = """
+                            DEBUG INFO:
+                            Status Code: ${response.code()}
+                            Error Body: $errorBody
+                            Bucket: storage
+                            Bucket Creation Failed: $bucketError
+                        """.trimIndent()
+                        Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
+                    }
+                } else {
+                    val debugInfo = """
+                        DEBUG INFO:
+                        Status Code: ${response.code()}
+                        Error Body: $errorBody
+                        Bucket: storage
+                    """.trimIndent()
+                    Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
