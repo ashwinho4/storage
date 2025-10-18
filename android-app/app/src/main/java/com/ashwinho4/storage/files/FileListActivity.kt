@@ -73,7 +73,7 @@ class FileListActivity : AppCompatActivity() {
                 premiumRepository.getUserPremiumStatus(currentUser.id)
                     .onSuccess { profile ->
                         userProfile = profile
-                        updatePremiumStatusUI(profile.isPremium)
+                        updatePremiumStatusUI(profile.is_premium)
                     }
                     .onFailure { error ->
                         Toast.makeText(this@FileListActivity, "Failed to load premium status: ${error.message}", Toast.LENGTH_SHORT).show()

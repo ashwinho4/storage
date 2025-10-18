@@ -1,46 +1,47 @@
 package com.ashwinho4.storage.auth
 
 import com.ashwinho4.storage.SupabaseClient
-import io.github.jan.supabase.auth.AuthResult
-import io.github.jan.supabase.auth.providers.builtin.Email
-import io.github.jan.supabase.auth.user.UserInfo
+import com.ashwinho4.storage.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class AuthRepository {
     
-    private val _currentUser = MutableStateFlow<UserInfo?>(null)
-    val currentUser: Flow<UserInfo?> = _currentUser.asStateFlow()
+    private val _currentUser = MutableStateFlow<User?>(null)
+    val currentUser: Flow<User?> = _currentUser.asStateFlow()
     
-    init {
-        // Get current user if already logged in
-        SupabaseClient.auth.currentUserOrNull()?.let { user ->
-            _currentUser.value = user
-        }
-    }
-    
-    suspend fun signUp(email: String, password: String): Result<AuthResult> {
+    suspend fun signUp(email: String, password: String): Result<User> {
         return try {
-            val result = SupabaseClient.auth.signUpWith(Email) {
-                this.email = email
-                this.password = password
+            val response = SupabaseClient.apiService.signUp(
+                com.ashwinho4.storage.SignUpRequest(email, password)
+            )
+            
+            if (response.isSuccessful) {
+                val authResponse = response.body()!!
+                _currentUser.value = authResponse.user
+                Result.success(authResponse.user)
+            } else {
+                Result.failure(Exception("Sign up failed: ${response.message()}"))
             }
-            result.user?.let { _currentUser.value = it }
-            Result.success(result)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
-    suspend fun signIn(email: String, password: String): Result<AuthResult> {
+    suspend fun signIn(email: String, password: String): Result<User> {
         return try {
-            val result = SupabaseClient.auth.signInWith(Email) {
-                this.email = email
-                this.password = password
+            val response = SupabaseClient.apiService.signIn(
+                com.ashwinho4.storage.SignInRequest(email, password)
+            )
+            
+            if (response.isSuccessful) {
+                val authResponse = response.body()!!
+                _currentUser.value = authResponse.user
+                Result.success(authResponse.user)
+            } else {
+                Result.failure(Exception("Sign in failed: ${response.message()}"))
             }
-            result.user?.let { _currentUser.value = it }
-            Result.success(result)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -48,19 +49,23 @@ class AuthRepository {
     
     suspend fun signOut(): Result<Unit> {
         return try {
-            SupabaseClient.auth.signOut()
-            _currentUser.value = null
-            Result.success(Unit)
+            val response = SupabaseClient.apiService.signOut()
+            if (response.isSuccessful) {
+                _currentUser.value = null
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Sign out failed: ${response.message()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     fun isLoggedIn(): Boolean {
-        return SupabaseClient.auth.currentUserOrNull() != null
+        return _currentUser.value != null
     }
     
-    fun getCurrentUser(): UserInfo? {
-        return SupabaseClient.auth.currentUserOrNull()
+    fun getCurrentUser(): User? {
+        return _currentUser.value
     }
 }

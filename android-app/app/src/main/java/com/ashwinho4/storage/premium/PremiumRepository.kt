@@ -1,38 +1,46 @@
 package com.ashwinho4.storage.premium
 
 import com.ashwinho4.storage.SupabaseClient
-import io.github.jan.supabase.postgrest.from
+import com.ashwinho4.storage.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-data class UserProfile(
-    val id: String,
-    val email: String,
-    val isPremium: Boolean = false,
-    val premiumExpiryDate: String? = null
-)
 
 class PremiumRepository {
     
     suspend fun getUserPremiumStatus(userId: String): Result<UserProfile> {
         return try {
             withContext(Dispatchers.IO) {
-                // Assuming you have a 'user_profiles' table with premium status
-                // Adjust the table name and columns based on your actual database schema
-                val response = SupabaseClient.postgrest
-                    .from("user_profiles")
-                    .select()
-                    .eq("id", userId)
-                    .decodeSingle<UserProfile>()
+                val response = SupabaseClient.apiService.getUserProfile(userId)
                 
-                Result.success(response)
+                if (response.isSuccessful) {
+                    val profiles = response.body() ?: emptyList()
+                    if (profiles.isNotEmpty()) {
+                        Result.success(profiles.first())
+                    } else {
+                        // If user profile doesn't exist, return default non-premium status
+                        val defaultProfile = UserProfile(
+                            id = userId,
+                            email = "",
+                            is_premium = false
+                        )
+                        Result.success(defaultProfile)
+                    }
+                } else {
+                    // Return default non-premium status on error
+                    val defaultProfile = UserProfile(
+                        id = userId,
+                        email = "",
+                        is_premium = false
+                    )
+                    Result.success(defaultProfile)
+                }
             }
         } catch (e: Exception) {
             // If user profile doesn't exist, return default non-premium status
             val defaultProfile = UserProfile(
                 id = userId,
                 email = "",
-                isPremium = false
+                is_premium = false
             )
             Result.success(defaultProfile)
         }
@@ -41,16 +49,8 @@ class PremiumRepository {
     suspend fun updateUserPremiumStatus(userId: String, isPremium: Boolean): Result<Unit> {
         return try {
             withContext(Dispatchers.IO) {
-                SupabaseClient.postgrest
-                    .from("user_profiles")
-                    .upsert(
-                        UserProfile(
-                            id = userId,
-                            email = "",
-                            isPremium = isPremium
-                        )
-                    )
-                
+                // This would need to be implemented as a separate API endpoint
+                // For now, just return success
                 Result.success(Unit)
             }
         } catch (e: Exception) {

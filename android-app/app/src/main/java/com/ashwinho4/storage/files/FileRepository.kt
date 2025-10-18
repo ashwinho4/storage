@@ -3,15 +3,12 @@ package com.ashwinho4.storage.files
 import android.content.Context
 import android.net.Uri
 import com.ashwinho4.storage.SupabaseClient
-import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
 import java.util.*
 
 class FileRepository {
-    
-    private val bucketName = "uploads"
     
     suspend fun uploadFile(context: Context, uri: Uri, fileName: String): Result<String> {
         return try {
@@ -24,18 +21,16 @@ class FileRepository {
                     val sanitizedName = fileName.replace(Regex("[^a-zA-Z0-9.-]"), "_")
                     val uniqueFileName = "$timestamp-$sanitizedName"
                     
-                    SupabaseClient.storage.from(bucketName).upload(
-                        path = uniqueFileName,
-                        data = fileData
+                    val response = SupabaseClient.apiService.uploadFile(
+                        fileName = uniqueFileName,
+                        fileData = fileData.toString(Charsets.UTF_8)
                     )
                     
-                    // Get public URL
-                    val publicUrl = SupabaseClient.storage.from(bucketName).createSignedUrl(
-                        path = uniqueFileName,
-                        expiresIn = 3600
-                    )
-                    
-                    Result.success(publicUrl)
+                    if (response.isSuccessful) {
+                        Result.success("File uploaded successfully")
+                    } else {
+                        Result.failure(Exception("Upload failed: ${response.message()}"))
+                    }
                 } ?: Result.failure(Exception("Could not read file"))
             }
         } catch (e: Exception) {
@@ -45,8 +40,12 @@ class FileRepository {
     
     suspend fun deleteFile(fileName: String): Result<Unit> {
         return try {
-            SupabaseClient.storage.from(bucketName).delete(fileName)
-            Result.success(Unit)
+            val response = SupabaseClient.apiService.deleteFile(fileName)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Delete failed: ${response.message()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -54,9 +53,14 @@ class FileRepository {
     
     suspend fun listFiles(): Result<List<String>> {
         return try {
-            val files = SupabaseClient.storage.from(bucketName).list()
-            val fileNames = files.map { it.name }
-            Result.success(fileNames)
+            val response = SupabaseClient.apiService.listFiles()
+            if (response.isSuccessful) {
+                val files = response.body() ?: emptyList()
+                val fileNames = files.map { it.name }
+                Result.success(fileNames)
+            } else {
+                Result.failure(Exception("Failed to list files: ${response.message()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
