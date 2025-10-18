@@ -150,8 +150,18 @@ class FileRepository {
             } else {
                 val errorBody = response.errorBody()?.string() ?: "List failed"
                 
-                // If bucket doesn't exist, try to create it
-                if (response.code() == 404 && errorBody.contains("Bucket not found")) {
+                // Check if it's an authentication issue (401/403)
+                if (response.code() == 401 || response.code() == 403) {
+                    val debugInfo = """
+                        DEBUG INFO:
+                        Status Code: ${response.code()}
+                        Error Body: $errorBody
+                        Bucket: storage
+                        Issue: Authentication failed - user may not be logged in or token expired
+                        Solution: Please login again
+                    """.trimIndent()
+                    Result.failure(Exception("Authentication failed - please login again\n\n$debugInfo"))
+                } else if (response.code() == 404 && errorBody.contains("Bucket not found")) {
                     val bucketResponse = SupabaseClient.apiService.createBucket(
                         com.ashwinho4.storage.CreateBucketRequest(
                             id = "storage",

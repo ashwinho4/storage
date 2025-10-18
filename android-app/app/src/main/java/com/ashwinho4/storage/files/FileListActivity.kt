@@ -114,6 +114,12 @@ class FileListActivity : AppCompatActivity() {
         val fileName = getFileName(uri) ?: "unknown_file"
         
         lifecycleScope.launch {
+            // Check if user is logged in first
+            if (!authRepository.isLoggedIn()) {
+                Toast.makeText(this@FileListActivity, "Please login to upload files", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            
             binding.btnUploadFile.isEnabled = false
             binding.btnUploadFile.text = "Uploading..."
             
@@ -134,6 +140,12 @@ class FileListActivity : AppCompatActivity() {
     
     private fun loadFiles() {
         lifecycleScope.launch {
+            // Check if user is logged in first
+            if (!authRepository.isLoggedIn()) {
+                Toast.makeText(this@FileListActivity, "Please login to access files", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            
             fileRepository.listFiles()
                 .onSuccess { files ->
                     fileAdapter.submitList(files)
