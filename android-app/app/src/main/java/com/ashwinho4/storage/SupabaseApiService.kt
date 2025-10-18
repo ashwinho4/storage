@@ -39,6 +39,10 @@ interface SupabaseApiService {
     // Database endpoints
     @GET("/rest/v1/user_profiles")
     suspend fun getUserProfile(@Query("id") userId: String): Response<List<UserProfile>>
+    
+    // Server endpoints (for file operations)
+    @GET("/api/list")
+    suspend fun listFilesFromServer(): Response<ListFilesResponse>
 }
 
 // Data classes for API requests and responses
@@ -86,4 +90,9 @@ data class CreateBucketRequest(
     val id: String,
     val name: String,
     val public: Boolean = true
+)
+
+data class ListFilesResponse(
+    val success: Boolean,
+    val files: List<StorageFile>?
 )

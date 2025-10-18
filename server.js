@@ -321,6 +321,38 @@ app.post('/api/upload', authenticateToken, upload.single('file'), async (req, re
     }
 });
 
+// Protected list files endpoint
+app.get('/api/list', authenticateToken, async (req, res) => {
+    try {
+        console.log('Listing files for user:', req.user.email);
+        
+        const bucketName = process.env.SUPABASE_BUCKET_NAME || 'storage';
+        
+        // List files from Supabase Storage
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .list('', {
+                limit: 100,
+                offset: 0
+            });
+
+        if (error) {
+            console.error('Error listing files:', error);
+            return res.status(500).json({ error: 'Failed to list files' });
+        }
+
+        console.log('Files listed successfully:', data.length);
+        res.json({ 
+            success: true,
+            files: data 
+        });
+        
+    } catch (error) {
+        console.error('Error in list files endpoint:', error);
+        res.status(500).json({ error: 'Failed to list files' });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });

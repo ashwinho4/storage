@@ -140,40 +140,45 @@ class FileRepository {
         }
     }
     
-           suspend fun listFiles(): Result<List<String>> {
-               return try {
-                   // Just try to list files directly - bucket already exists
-                   val response = SupabaseClient.apiService.listFiles("storage")
-                   if (response.isSuccessful) {
-                       val files = response.body() ?: emptyList()
-                       val fileNames = files.map { it.name }
-                       Result.success(fileNames)
-                   } else {
-                       val errorBody = response.errorBody()?.string() ?: "List failed"
-                       
-                       // Check if it's an authentication issue (401/403)
-                       if (response.code() == 401 || response.code() == 403) {
-                           val debugInfo = """
-                               DEBUG INFO:
-                               Status Code: ${response.code()}
-                               Error Body: $errorBody
-                               Bucket: storage
-                               Issue: Authentication failed - user may not be logged in or token expired
-                               Solution: Please login again
-                           """.trimIndent()
-                           Result.failure(Exception("Authentication failed - please login again\n\n$debugInfo"))
-                       } else {
-                           val debugInfo = """
-                               DEBUG INFO:
-                               Status Code: ${response.code()}
-                               Error Body: $errorBody
-                               Bucket: storage
-                           """.trimIndent()
-                           Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
-                       }
-                   }
-               } catch (e: Exception) {
-                   Result.failure(e)
-               }
-           }
+    suspend fun listFiles(): Result<List<String>> {
+        return try {
+            // Call the server endpoint instead of Supabase directly
+            val response = SupabaseClient.serverApiService.listFilesFromServer()
+            if (response.isSuccessful) {
+                val result = response.body()
+                if (result?.success == true) {
+                    val files = result.files ?: emptyList()
+                    val fileNames = files.map { it.name }
+                    Result.success(fileNames)
+                } else {
+                    Result.failure(Exception("Server returned unsuccessful response"))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "List failed"
+                
+                // Check if it's an authentication issue (401/403)
+                if (response.code() == 401 || response.code() == 403) {
+                    val debugInfo = """
+                        DEBUG INFO:
+                        Status Code: ${response.code()}
+                        Error Body: $errorBody
+                        Endpoint: /api/list
+                        Issue: Authentication failed - user may not be logged in or token expired
+                        Solution: Please login again
+                    """.trimIndent()
+                    Result.failure(Exception("Authentication failed - please login again\n\n$debugInfo"))
+                } else {
+                    val debugInfo = """
+                        DEBUG INFO:
+                        Status Code: ${response.code()}
+                        Error Body: $errorBody
+                        Endpoint: /api/list
+                    """.trimIndent()
+                    Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
