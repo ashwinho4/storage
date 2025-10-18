@@ -8,7 +8,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 object SupabaseClient {
     
     private const val SUPABASE_URL = "https://gjihfsstquukbkespeae.supabase.co"
-    private const val SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE" // Replace with your actual key
+    // TODO: Replace with your actual Supabase anon key
+    // Get it from: Supabase Dashboard → Settings → API → anon public key
+    private const val SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE"
     
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
