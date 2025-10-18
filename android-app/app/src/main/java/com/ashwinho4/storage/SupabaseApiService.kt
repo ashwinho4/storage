@@ -7,16 +7,13 @@ interface SupabaseApiService {
     
     // Auth endpoints
     @POST("/auth/v1/signup")
-    @Headers("Content-Type: application/json")
     suspend fun signUp(@Body request: SignUpRequest): Response<AuthResponse>
     
     @POST("/auth/v1/token?grant_type=password")
-    @Headers("Content-Type: application/json")
     suspend fun signIn(@Body request: SignInRequest): Response<AuthResponse>
     
     @POST("/auth/v1/logout")
-    @Headers("Authorization: Bearer YOUR_SUPABASE_ANON_KEY_HERE")
-    suspend fun signOut(): Response<Unit>
+    suspend fun signOut(@Header("Authorization") token: String): Response<Unit>
     
     // Storage endpoints
     @GET("/storage/v1/object/list/uploads")
