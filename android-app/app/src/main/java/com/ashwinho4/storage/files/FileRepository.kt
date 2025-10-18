@@ -160,7 +160,7 @@ class FileRepository {
                            Bucket Creation Error: $bucketError
                            Bucket: storage
                        """.trimIndent()
-                       Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
+                       return Result.failure<List<String>>(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
                    }
                    
                    // Now try to list files
