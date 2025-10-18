@@ -57,7 +57,8 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY;
 // Check if Supabase key is available
 if (!supabaseKey) {
     console.error('SUPABASE_ANON_KEY is not set in environment variables');
-    process.exit(1);
+    console.error('Available environment variables:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
+    // Don't exit, just log the error and continue
 }
 
 // Check if Dodo Payments API key is available
@@ -69,6 +70,11 @@ if (!process.env.DODO_PAYMENTS_API_KEY) {
 if (!process.env.DODO_PRODUCT_ID) {
     console.warn('DODO_PRODUCT_ID is not set in environment variables - will use fallback from request body');
 }
+
+// Create Supabase client with debug logging
+console.log('Creating Supabase client with URL:', supabaseUrl);
+console.log('Supabase key available:', !!supabaseKey);
+console.log('Supabase key length:', supabaseKey ? supabaseKey.length : 0);
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
