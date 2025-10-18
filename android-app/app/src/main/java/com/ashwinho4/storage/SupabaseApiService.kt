@@ -22,8 +22,8 @@ interface SupabaseApiService {
     
     @GET("/storage/v1/object/list/{folder}")
     suspend fun listFilesInFolder(
-        @Query("bucket") bucketId: String,
-        @Path("folder") folder: String
+        @Path("folder") folder: String,
+        @Query("bucket") bucketId: String
     ): Response<List<StorageFile>>
     
     @POST("/storage/v1/object/{bucketId}/{fileName}")
