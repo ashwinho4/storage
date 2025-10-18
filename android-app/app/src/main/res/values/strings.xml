@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Storage App</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="upload_file">Upload File</string>
+    <string name="my_files">My Files</string>
+    <string name="premium_user">Premium User</string>
+    <string name="free_user">Free User</string>
+    <string name="logout">Logout</string>
+    <string name="delete_file">Delete file</string>
+</resources>
