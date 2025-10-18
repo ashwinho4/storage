@@ -10,26 +10,41 @@ object SupabaseClient {
     private const val SUPABASE_URL = "https://gjihfsstquukbkespeae.supabase.co"
     private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqaWhmc3N0cXV1a2JrZXNwZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMjc5ODAsImV4cCI6MjA3NTcwMzk4MH0.xjRPkZB7tbQZ4ahO8zLTy0Cap1K59RJbhCBnBDptDcg"
     
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val original = chain.request()
-            val requestBuilder = original.newBuilder()
-                .addHeader("apikey", SUPABASE_ANON_KEY)
-                .addHeader("Content-Type", "application/json")
-            
-            chain.proceed(requestBuilder.build())
-        }
-        .build()
+    private var userToken: String? = null
+    private var retrofit: Retrofit? = null
     
-    val retrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(SUPABASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+    fun setUserToken(token: String?) {
+        userToken = token
+        // Invalidate retrofit instance so it gets recreated with new token
+        retrofit = null
+    }
+    
+    private fun getOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val requestBuilder = original.newBuilder()
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .addHeader("Content-Type", "application/json")
+                
+                // Add Authorization header for authenticated requests
+                userToken?.let { token ->
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+                
+                chain.proceed(requestBuilder.build())
+            }
             .build()
     }
     
-    val apiService: SupabaseApiService by lazy {
-        retrofit.create(SupabaseApiService::class.java)
+    private fun getRetrofit(): Retrofit {
+        return retrofit ?: Retrofit.Builder()
+            .baseUrl(SUPABASE_URL)
+            .client(getOkHttpClient())
+            .addConverterFactory(GsonConverterFactory.create())
+            .build().also { retrofit = it }
     }
+    
+    val apiService: SupabaseApiService
+        get() = getRetrofit().create(SupabaseApiService::class.java)
 }

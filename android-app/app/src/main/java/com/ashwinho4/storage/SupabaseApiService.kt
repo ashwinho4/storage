@@ -1,5 +1,6 @@
 package com.ashwinho4.storage
 
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -17,23 +18,19 @@ interface SupabaseApiService {
     
     // Storage endpoints
     @GET("/storage/v1/object/list/uploads")
-    @Headers("Authorization: Bearer YOUR_SUPABASE_ANON_KEY_HERE")
     suspend fun listFiles(): Response<List<StorageFile>>
     
     @POST("/storage/v1/object/uploads/{fileName}")
-    @Headers("Authorization: Bearer YOUR_SUPABASE_ANON_KEY_HERE")
     suspend fun uploadFile(
         @Path("fileName") fileName: String,
-        @Body fileData: String
+        @Body file: RequestBody
     ): Response<Unit>
     
     @DELETE("/storage/v1/object/uploads/{fileName}")
-    @Headers("Authorization: Bearer YOUR_SUPABASE_ANON_KEY_HERE")
     suspend fun deleteFile(@Path("fileName") fileName: String): Response<Unit>
     
     // Database endpoints
     @GET("/rest/v1/user_profiles")
-    @Headers("Authorization: Bearer YOUR_SUPABASE_ANON_KEY_HERE")
     suspend fun getUserProfile(@Query("id") userId: String): Response<List<UserProfile>>
 }
 

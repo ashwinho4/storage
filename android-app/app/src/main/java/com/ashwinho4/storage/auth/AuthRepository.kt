@@ -22,6 +22,10 @@ class AuthRepository {
                 val authResponse = response.body()!!
                 _currentUser.value = authResponse.user
                 _accessToken.value = authResponse.access_token
+                
+                // Set user token for Supabase client
+                SupabaseClient.setUserToken(authResponse.access_token)
+                
                 Result.success(authResponse.user)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Unknown error"
@@ -42,6 +46,10 @@ class AuthRepository {
                 val authResponse = response.body()!!
                 _currentUser.value = authResponse.user
                 _accessToken.value = authResponse.access_token
+                
+                // Set user token for Supabase client
+                SupabaseClient.setUserToken(authResponse.access_token)
+                
                 Result.success(authResponse.user)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Unknown error"
@@ -59,10 +67,18 @@ class AuthRepository {
                 val response = SupabaseClient.apiService.signOut("Bearer $token")
                 _currentUser.value = null
                 _accessToken.value = null
+                
+                // Clear user token from Supabase client
+                SupabaseClient.setUserToken(null)
+                
                 Result.success(Unit)
             } else {
                 _currentUser.value = null
                 _accessToken.value = null
+                
+                // Clear user token from Supabase client
+                SupabaseClient.setUserToken(null)
+                
                 Result.success(Unit)
             }
         } catch (e: Exception) {

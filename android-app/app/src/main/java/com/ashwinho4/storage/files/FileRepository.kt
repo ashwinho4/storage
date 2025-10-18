@@ -6,12 +6,7 @@ import com.ashwinho4.storage.SupabaseClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import retrofit2.Response
-import java.io.File
-import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.*
 
@@ -28,9 +23,6 @@ class FileRepository {
         }
     }
     
-    // In-memory storage for demo purposes
-    private val uploadedFiles = mutableListOf<String>()
-    
     suspend fun uploadFile(context: Context, uri: Uri, fileName: String): Result<String> {
         return try {
             withContext(Dispatchers.IO) {
@@ -40,13 +32,22 @@ class FileRepository {
                     val sanitizedName = fileName.replace(Regex("[^a-zA-Z0-9.-]"), "_")
                     val uniqueFileName = "$timestamp-$sanitizedName"
                     
-                    // Simulate upload delay
-                    kotlinx.coroutines.delay(1000)
+                    // Read file content
+                    val fileBytes = stream.readBytes()
+                    val contentType = context.contentResolver.getType(uri) ?: "application/octet-stream"
                     
-                    // Add to our in-memory list
-                    uploadedFiles.add(uniqueFileName)
+                    // Create request body
+                    val requestBody = fileBytes.toRequestBody(contentType.toMediaType())
                     
-                    Result.success("File uploaded successfully: $uniqueFileName")
+                    // Upload to Supabase Storage
+                    val response = SupabaseClient.apiService.uploadFile(uniqueFileName, requestBody)
+                    
+                    if (response.isSuccessful) {
+                        Result.success("File uploaded successfully: $uniqueFileName")
+                    } else {
+                        val errorBody = response.errorBody()?.string() ?: "Upload failed"
+                        Result.failure(Exception("Upload failed: $errorBody"))
+                    }
                 } ?: Result.failure(Exception("Could not read file"))
             }
         } catch (e: Exception) {
@@ -56,9 +57,13 @@ class FileRepository {
     
     suspend fun deleteFile(fileName: String): Result<Unit> {
         return try {
-            // Remove from our in-memory list
-            uploadedFiles.remove(fileName)
-            Result.success(Unit)
+            val response = SupabaseClient.apiService.deleteFile(fileName)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "Delete failed"
+                Result.failure(Exception("Delete failed: $errorBody"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -66,8 +71,15 @@ class FileRepository {
     
     suspend fun listFiles(): Result<List<String>> {
         return try {
-            // Return the actual uploaded files
-            Result.success(uploadedFiles.toList())
+            val response = SupabaseClient.apiService.listFiles()
+            if (response.isSuccessful) {
+                val files = response.body() ?: emptyList()
+                val fileNames = files.map { it.name }
+                Result.success(fileNames)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "List failed"
+                Result.failure(Exception("List failed: $errorBody"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
