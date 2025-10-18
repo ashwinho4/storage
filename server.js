@@ -30,13 +30,17 @@ const authenticateToken = async (req, res, next) => {
     }
 
     try {
+        console.log('Validating token:', token ? `${token.substring(0, 20)}...` : 'null');
         const { data: { user }, error } = await supabase.auth.getUser(token);
+        console.log('Token validation result:', { user: !!user, error: error?.message || 'none' });
         if (error || !user) {
+            console.log('Token validation failed:', error?.message || 'No user returned');
             return res.status(403).json({ error: 'Invalid token' });
         }
         req.user = user;
         next();
     } catch (error) {
+        console.log('Token validation exception:', error.message);
         return res.status(403).json({ error: 'Invalid token' });
     }
 };
