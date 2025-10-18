@@ -283,6 +283,7 @@ Endpoint: /api/upload
     }
 
     getFileIcon(mimetype) {
+        if (!mimetype) return '📁';
         if (mimetype.startsWith('image/')) return '🖼️';
         if (mimetype.startsWith('video/')) return '🎥';
         if (mimetype.startsWith('audio/')) return '🎵';
