@@ -40,7 +40,7 @@ class FileRepository {
                     val requestBody = fileBytes.toRequestBody(contentType.toMediaType())
                     
                     // Try to upload to Supabase Storage
-                    val response = SupabaseClient.apiService.uploadFile(uniqueFileName, requestBody)
+                    val response = SupabaseClient.apiService.uploadFile("storage", uniqueFileName, requestBody)
                     
                     if (response.isSuccessful) {
                         Result.success("File uploaded successfully: $uniqueFileName")
@@ -69,7 +69,7 @@ class FileRepository {
                             
                             if (bucketResponse.isSuccessful) {
                                 // Retry upload after creating bucket
-                                val retryResponse = SupabaseClient.apiService.uploadFile(uniqueFileName, requestBody)
+                                val retryResponse = SupabaseClient.apiService.uploadFile("storage", uniqueFileName, requestBody)
                                 if (retryResponse.isSuccessful) {
                                     Result.success("File uploaded successfully: $uniqueFileName")
                                 } else {
@@ -93,7 +93,7 @@ class FileRepository {
     
     suspend fun deleteFile(fileName: String): Result<Unit> {
         return try {
-            val response = SupabaseClient.apiService.deleteFile(fileName)
+            val response = SupabaseClient.apiService.deleteFile("storage", fileName)
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -142,7 +142,7 @@ class FileRepository {
     
     suspend fun listFiles(): Result<List<String>> {
         return try {
-            val response = SupabaseClient.apiService.listFiles()
+            val response = SupabaseClient.apiService.listFiles("storage")
             if (response.isSuccessful) {
                 val files = response.body() ?: emptyList()
                 val fileNames = files.map { it.name }
@@ -172,7 +172,7 @@ class FileRepository {
                     
                     if (bucketResponse.isSuccessful) {
                         // Bucket created successfully, retry listing
-                        val retryResponse = SupabaseClient.apiService.listFiles()
+                        val retryResponse = SupabaseClient.apiService.listFiles("storage")
                         if (retryResponse.isSuccessful) {
                             val files = retryResponse.body() ?: emptyList()
                             val fileNames = files.map { it.name }

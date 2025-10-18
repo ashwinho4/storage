@@ -20,17 +20,21 @@ interface SupabaseApiService {
     @POST("/storage/v1/bucket")
     suspend fun createBucket(@Body bucket: CreateBucketRequest): Response<Unit>
     
-    @GET("/storage/v1/object/list/storage")
-    suspend fun listFiles(): Response<List<StorageFile>>
+    @GET("/storage/v1/object/list")
+    suspend fun listFiles(@Query("bucketId") bucketId: String): Response<List<StorageFile>>
     
-    @POST("/storage/v1/object/storage/{fileName}")
+    @POST("/storage/v1/object/{bucketId}/{fileName}")
     suspend fun uploadFile(
+        @Path("bucketId") bucketId: String,
         @Path("fileName") fileName: String,
         @Body file: RequestBody
     ): Response<Unit>
     
-    @DELETE("/storage/v1/object/storage/{fileName}")
-    suspend fun deleteFile(@Path("fileName") fileName: String): Response<Unit>
+    @DELETE("/storage/v1/object/{bucketId}/{fileName}")
+    suspend fun deleteFile(
+        @Path("bucketId") bucketId: String,
+        @Path("fileName") fileName: String
+    ): Response<Unit>
     
     // Database endpoints
     @GET("/rest/v1/user_profiles")
