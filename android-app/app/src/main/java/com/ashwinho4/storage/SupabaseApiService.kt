@@ -20,8 +20,8 @@ interface SupabaseApiService {
     @POST("/storage/v1/bucket")
     suspend fun createBucket(@Body bucket: CreateBucketRequest): Response<Unit>
     
-    @GET("/storage/v1/object/list")
-    suspend fun listFiles(@Query("bucketId") bucketId: String): Response<List<StorageFile>>
+    @GET("/storage/v1/object/list/{bucketId}")
+    suspend fun listFiles(@Path("bucketId") bucketId: String): Response<List<StorageFile>>
     
     @POST("/storage/v1/object/{bucketId}/{fileName}")
     suspend fun uploadFile(
