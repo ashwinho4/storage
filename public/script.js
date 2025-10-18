@@ -1,7 +1,7 @@
 class FileUploadApp {
     constructor() {
         this.selectedFile = null;
-        this.uploads = this.loadUploads();
+        this.uploads = [];
         this.currentUser = null;
         this.authToken = null;
         this.init();
@@ -372,7 +372,7 @@ Endpoint: /api/upload
 
     async loadUploads() {
         // If not logged in, return empty array
-        if (!this.authToken) {
+        if (!this.authToken || !this.currentUser) {
             return [];
         }
 
@@ -388,10 +388,11 @@ Endpoint: /api/upload
             if (response.ok) {
                 const result = await response.json();
                 // Convert Supabase storage files to upload format
+                const userId = this.currentUser.id;
                 return result.files.map(file => ({
                     id: file.id,
                     name: file.name,
-                    url: `https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/public/storage/${this.currentUser.id}/${file.name}`,
+                    url: `https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/public/storage/${userId}/${file.name}`,
                     size: file.metadata?.size || 0,
                     type: file.metadata?.mimetype || 'unknown',
                     uploadedAt: file.created_at
