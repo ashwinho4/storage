@@ -29,7 +29,14 @@ class AuthRepository {
                 Result.success(authResponse.user)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                Result.failure(Exception("Sign up failed: $errorBody"))
+                val debugInfo = """
+                    DEBUG INFO:
+                    Status Code: ${response.code()}
+                    Error Body: $errorBody
+                    Endpoint: /auth/v1/signup
+                    Email: $email
+                """.trimIndent()
+                Result.failure(Exception("Sign up failed: $errorBody\n\n$debugInfo"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -53,7 +60,14 @@ class AuthRepository {
                 Result.success(authResponse.user)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                Result.failure(Exception("Sign in failed: $errorBody"))
+                val debugInfo = """
+                    DEBUG INFO:
+                    Status Code: ${response.code()}
+                    Error Body: $errorBody
+                    Endpoint: /auth/v1/token?grant_type=password
+                    Email: $email
+                """.trimIndent()
+                Result.failure(Exception("Sign in failed: $errorBody\n\n$debugInfo"))
             }
         } catch (e: Exception) {
             Result.failure(e)

@@ -177,7 +177,21 @@ class FileUploadApp {
 
         } catch (error) {
             console.error('Upload error:', error);
+            
+            // Create detailed debug info
+            const debugInfo = `
+DEBUG INFO:
+Status Code: ${error.status || 'Unknown'}
+Error Message: ${error.message}
+File Name: ${this.selectedFile.name}
+File Size: ${this.formatFileSize(this.selectedFile.size)}
+File Type: ${this.selectedFile.type}
+Auth Token: ${this.authToken ? 'Present' : 'Missing'}
+Endpoint: /api/upload
+            `.trim();
+            
             this.showToast(`Upload failed: ${error.message}`, 'error');
+            this.showDebugPopup('Upload Error', debugInfo);
             progressBar.style.display = 'none';
             progressFill.style.width = '0%';
         } finally {
@@ -308,6 +322,36 @@ class FileUploadApp {
         }, 3000);
     }
 
+    showDebugPopup(title, debugInfo) {
+        // Create debug popup
+        const debugPopup = document.createElement('div');
+        debugPopup.className = 'debug-popup';
+        debugPopup.innerHTML = `
+            <div class="debug-popup-content">
+                <div class="debug-popup-header">
+                    <h3>🔍 ${title}</h3>
+                    <button class="debug-close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="debug-popup-body">
+                    <pre>${debugInfo}</pre>
+                </div>
+                <div class="debug-popup-footer">
+                    <button class="debug-copy-btn" onclick="navigator.clipboard.writeText('${debugInfo.replace(/'/g, "\\'")}')">Copy Debug Info</button>
+                    <button class="debug-close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(debugPopup);
+        
+        // Auto-close after 10 seconds
+        setTimeout(() => {
+            if (debugPopup.parentElement) {
+                debugPopup.remove();
+            }
+        }, 10000);
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -389,10 +433,24 @@ class FileUploadApp {
                 document.getElementById('loginForm').reset();
             } else {
                 this.showToast(result.error || 'Login failed', 'error');
+                this.showDebugPopup('Login Error', `
+DEBUG INFO:
+Status Code: ${response.status}
+Error Message: ${result.error || 'Unknown error'}
+Email: ${email}
+Endpoint: /api/auth/login
+Response: ${JSON.stringify(result, null, 2)}
+                `.trim());
             }
         } catch (error) {
             console.error('Login error:', error);
             this.showToast('Login failed', 'error');
+            this.showDebugPopup('Login Error', `
+DEBUG INFO:
+Error: ${error.message}
+Email: ${email}
+Endpoint: /api/auth/login
+            `.trim());
         }
     }
 
@@ -419,10 +477,24 @@ class FileUploadApp {
                 document.getElementById('signupForm').reset();
             } else {
                 this.showToast(result.error || 'Signup failed', 'error');
+                this.showDebugPopup('Signup Error', `
+DEBUG INFO:
+Status Code: ${response.status}
+Error Message: ${result.error || 'Unknown error'}
+Email: ${email}
+Endpoint: /api/auth/signup
+Response: ${JSON.stringify(result, null, 2)}
+                `.trim());
             }
         } catch (error) {
             console.error('Signup error:', error);
             this.showToast('Signup failed', 'error');
+            this.showDebugPopup('Signup Error', `
+DEBUG INFO:
+Error: ${error.message}
+Email: ${email}
+Endpoint: /api/auth/signup
+            `.trim());
         }
     }
 

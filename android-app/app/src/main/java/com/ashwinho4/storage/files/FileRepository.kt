@@ -47,6 +47,16 @@ class FileRepository {
                     } else {
                         // If upload fails with 404, try to create the bucket first
                         val errorBody = response.errorBody()?.string() ?: "Upload failed"
+                        val debugInfo = """
+                            DEBUG INFO:
+                            Status Code: ${response.code()}
+                            Error Body: $errorBody
+                            File Name: $uniqueFileName
+                            Content Type: $contentType
+                            File Size: ${fileBytes.size} bytes
+                            Bucket: storage
+                        """.trimIndent()
+                        
                         if (response.code() == 404 && errorBody.contains("Bucket")) {
                             // Try to create the storage bucket
                             val bucketResponse = SupabaseClient.apiService.createBucket(
@@ -64,13 +74,14 @@ class FileRepository {
                                     Result.success("File uploaded successfully: $uniqueFileName")
                                 } else {
                                     val retryError = retryResponse.errorBody()?.string() ?: "Upload failed after bucket creation"
-                                    Result.failure(Exception("Upload failed: $retryError"))
+                                    Result.failure(Exception("Upload failed after bucket creation: $retryError\n\n$debugInfo"))
                                 }
                             } else {
-                                Result.failure(Exception("Upload failed: Could not create bucket"))
+                                val bucketError = bucketResponse.errorBody()?.string() ?: "Bucket creation failed"
+                                Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
                             }
                         } else {
-                            Result.failure(Exception("Upload failed: $errorBody"))
+                            Result.failure(Exception("Upload failed: $errorBody\n\n$debugInfo"))
                         }
                     }
                 } ?: Result.failure(Exception("Could not read file"))
@@ -87,7 +98,14 @@ class FileRepository {
                 Result.success(Unit)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Delete failed"
-                Result.failure(Exception("Delete failed: $errorBody"))
+                val debugInfo = """
+                    DEBUG INFO:
+                    Status Code: ${response.code()}
+                    Error Body: $errorBody
+                    File Name: $fileName
+                    Bucket: storage
+                """.trimIndent()
+                Result.failure(Exception("Delete failed: $errorBody\n\n$debugInfo"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -103,7 +121,13 @@ class FileRepository {
                 Result.success(fileNames)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "List failed"
-                Result.failure(Exception("List failed: $errorBody"))
+                val debugInfo = """
+                    DEBUG INFO:
+                    Status Code: ${response.code()}
+                    Error Body: $errorBody
+                    Bucket: storage
+                """.trimIndent()
+                Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
             }
         } catch (e: Exception) {
             Result.failure(e)
