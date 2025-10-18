@@ -23,14 +23,15 @@ class FileRepository {
         }
     }
     
-    suspend fun uploadFile(context: Context, uri: Uri, fileName: String): Result<String> {
+    suspend fun uploadFile(context: Context, uri: Uri, fileName: String, userId: String): Result<String> {
         return try {
             withContext(Dispatchers.IO) {
                 val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
                 inputStream?.use { stream ->
                     val timestamp = Date().time
                     val sanitizedName = fileName.replace(Regex("[^a-zA-Z0-9.-]"), "_")
-                    val uniqueFileName = "$timestamp-$sanitizedName"
+                    // Add user ID prefix to ensure user isolation
+                    val uniqueFileName = "$userId/$timestamp-$sanitizedName"
                     
                     // Read file content
                     val fileBytes = stream.readBytes()
@@ -93,9 +94,11 @@ class FileRepository {
         }
     }
     
-    suspend fun deleteFile(fileName: String): Result<Unit> {
+    suspend fun deleteFile(fileName: String, userId: String): Result<Unit> {
         return try {
-            val response = SupabaseClient.apiService.deleteFile("storage", fileName)
+            // Add user ID prefix to the file name
+            val fullFileName = "$userId/$fileName"
+            val response = SupabaseClient.apiService.deleteFile("storage", fullFileName)
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -144,19 +147,15 @@ class FileRepository {
         }
     }
     
-    suspend fun listFiles(): Result<List<String>> {
+    suspend fun listFiles(userId: String): Result<List<String>> {
         return try {
-            // Call the server endpoint instead of Supabase directly
-            val response = SupabaseClient.serverApiService.listFilesFromServer()
+            // Call Supabase Storage API directly - list files with user ID prefix
+            val response = SupabaseClient.apiService.listFilesInFolder("storage", userId)
             if (response.isSuccessful) {
-                val result = response.body()
-                if (result?.success == true) {
-                    val files = result.files ?: emptyList()
-                    val fileNames = files.map { it.name }
-                    Result.success(fileNames)
-                } else {
-                    Result.failure(Exception("Server returned unsuccessful response"))
-                }
+                val files = response.body() ?: emptyList()
+                // Return only the file names without the userId prefix
+                val fileNames = files.map { it.name }
+                Result.success(fileNames)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "List failed"
                 
@@ -166,8 +165,8 @@ class FileRepository {
                         DEBUG INFO:
                         Status Code: ${response.code()}
                         Error Body: $errorBody
-                        Full API URL: http://192.168.1.110:3000/api/list
-                        Endpoint: /api/list
+                        Full API URL: https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/list?bucket=storage
+                        Endpoint: /storage/v1/object/list
                         Issue: Authentication failed - user may not be logged in or token expired
                         Solution: Please login again
                     """.trimIndent()
@@ -177,8 +176,8 @@ class FileRepository {
                         DEBUG INFO:
                         Status Code: ${response.code()}
                         Error Body: $errorBody
-                        Full API URL: http://192.168.1.110:3000/api/list
-                        Endpoint: /api/list
+                        Full API URL: https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/list?bucket=storage
+                        Endpoint: /storage/v1/object/list
                     """.trimIndent()
                     Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
                 }

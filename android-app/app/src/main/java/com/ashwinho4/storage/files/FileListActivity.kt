@@ -118,7 +118,8 @@ class FileListActivity : AppCompatActivity() {
         
         lifecycleScope.launch {
             // Check if user is logged in first
-            if (!authRepository.isLoggedIn()) {
+            val currentUser = authRepository.getCurrentUser()
+            if (currentUser == null) {
                 Toast.makeText(this@FileListActivity, "Please login to upload files", Toast.LENGTH_SHORT).show()
                 return@launch
             }
@@ -126,7 +127,7 @@ class FileListActivity : AppCompatActivity() {
             binding.btnUploadFile.isEnabled = false
             binding.btnUploadFile.text = "Uploading..."
             
-            fileRepository.uploadFile(this@FileListActivity, uri, fileName)
+            fileRepository.uploadFile(this@FileListActivity, uri, fileName, currentUser.id)
                 .onSuccess { url ->
                     Toast.makeText(this@FileListActivity, "File uploaded successfully!", Toast.LENGTH_SHORT).show()
                     loadFiles() // Refresh the file list
@@ -144,23 +145,22 @@ class FileListActivity : AppCompatActivity() {
     private fun loadFiles() {
         lifecycleScope.launch {
             // Check if user is logged in first with debug info
-            val isLoggedIn = authRepository.isLoggedIn()
             val currentUser = authRepository.getCurrentUser()
             
             val debugAuthInfo = """
                 Auth Debug Info:
-                isLoggedIn(): $isLoggedIn
+                isLoggedIn(): ${currentUser != null}
                 currentUser: $currentUser
                 currentUser.email: ${currentUser?.email ?: "null"}
             """.trimIndent()
             
-            if (!isLoggedIn) {
+            if (currentUser == null) {
                 Toast.makeText(this@FileListActivity, "Please login to access files", Toast.LENGTH_SHORT).show()
                 showDebugDialog("Authentication Debug", debugAuthInfo)
                 return@launch
             }
             
-            fileRepository.listFiles()
+            fileRepository.listFiles(currentUser.id)
                 .onSuccess { files ->
                     fileAdapter.submitList(files)
                 }
@@ -173,7 +173,13 @@ class FileListActivity : AppCompatActivity() {
     
     private fun removeFile(fileName: String) {
         lifecycleScope.launch {
-            fileRepository.deleteFile(fileName)
+            val currentUser = authRepository.getCurrentUser()
+            if (currentUser == null) {
+                Toast.makeText(this@FileListActivity, "Please login to delete files", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            
+            fileRepository.deleteFile(fileName, currentUser.id)
                 .onSuccess {
                     Toast.makeText(this@FileListActivity, "File deleted successfully!", Toast.LENGTH_SHORT).show()
                     loadFiles() // Refresh the file list
