@@ -392,10 +392,10 @@ Endpoint: /api/upload
                 const userId = this.currentUser.id;
                 return result.files.map(file => ({
                     id: file.id,
-                    name: file.name,
-                    url: `https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/public/storage/${userId}/${file.name}`,
+                    fileName: file.name,
                     size: file.metadata?.size || 0,
-                    type: file.metadata?.mimetype || 'unknown',
+                    mimetype: file.metadata?.mimetype || 'unknown',
+                    url: `https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/public/storage/${userId}/${file.name}`,
                     uploadedAt: file.created_at
                 }));
             } else {
