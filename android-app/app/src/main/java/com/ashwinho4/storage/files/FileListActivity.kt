@@ -1,6 +1,10 @@
 package com.ashwinho4.storage.files
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -120,6 +124,7 @@ class FileListActivity : AppCompatActivity() {
                 }
                 .onFailure { error ->
                     Toast.makeText(this@FileListActivity, "Upload failed: ${error.message}", Toast.LENGTH_LONG).show()
+                    showDebugDialog("Upload Error", error.message ?: "Unknown error")
                 }
             
             binding.btnUploadFile.isEnabled = true
@@ -135,6 +140,7 @@ class FileListActivity : AppCompatActivity() {
                 }
                 .onFailure { error ->
                     Toast.makeText(this@FileListActivity, "Failed to load files: ${error.message}", Toast.LENGTH_SHORT).show()
+                    showDebugDialog("Load Files Error", error.message ?: "Unknown error")
                 }
         }
     }
@@ -148,6 +154,7 @@ class FileListActivity : AppCompatActivity() {
                 }
                 .onFailure { error ->
                     Toast.makeText(this@FileListActivity, "Delete failed: ${error.message}", Toast.LENGTH_SHORT).show()
+                    showDebugDialog("Delete File Error", error.message ?: "Unknown error")
                 }
         }
     }
@@ -170,5 +177,21 @@ class FileListActivity : AppCompatActivity() {
             cursor.moveToFirst()
             cursor.getString(nameIndex)
         }
+    }
+    
+    private fun showDebugDialog(title: String, debugInfo: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Debug Info", debugInfo)
+        clipboard.setPrimaryClip(clip)
+        
+        AlertDialog.Builder(this)
+            .setTitle("🔍 $title")
+            .setMessage(debugInfo)
+            .setPositiveButton("Copy to Clipboard") { _, _ ->
+                Toast.makeText(this, "Debug info copied to clipboard!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Close", null)
+            .setCancelable(true)
+            .show()
     }
 }

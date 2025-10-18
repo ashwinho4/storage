@@ -1,5 +1,9 @@
 package com.ashwinho4.storage.auth
 
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -60,6 +64,7 @@ class LoginActivity : AppCompatActivity() {
                 }
                 .onFailure { error ->
                     Toast.makeText(this@LoginActivity, "Login failed: ${error.message}", Toast.LENGTH_LONG).show()
+                    showDebugDialog("Login Error", error.message ?: "Unknown error")
                 }
             
             binding.btnLogin.isEnabled = true
@@ -79,6 +84,7 @@ class LoginActivity : AppCompatActivity() {
                 }
                 .onFailure { error ->
                     Toast.makeText(this@LoginActivity, "Sign up failed: ${error.message}", Toast.LENGTH_LONG).show()
+                    showDebugDialog("Sign Up Error", error.message ?: "Unknown error")
                 }
             
             binding.btnSignUp.isEnabled = true
@@ -90,5 +96,21 @@ class LoginActivity : AppCompatActivity() {
         val intent = Intent(this, com.ashwinho4.storage.files.FileListActivity::class.java)
         startActivity(intent)
         finish()
+    }
+    
+    private fun showDebugDialog(title: String, debugInfo: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Debug Info", debugInfo)
+        clipboard.setPrimaryClip(clip)
+        
+        AlertDialog.Builder(this)
+            .setTitle("🔍 $title")
+            .setMessage(debugInfo)
+            .setPositiveButton("Copy to Clipboard") { _, _ ->
+                Toast.makeText(this, "Debug info copied to clipboard!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Close", null)
+            .setCancelable(true)
+            .show()
     }
 }
