@@ -47,15 +47,17 @@ class FileRepository {
                     } else {
                         // If upload fails with 404, try to create the bucket first
                         val errorBody = response.errorBody()?.string() ?: "Upload failed"
-                        val debugInfo = """
-                            DEBUG INFO:
-                            Status Code: ${response.code()}
-                            Error Body: $errorBody
-                            File Name: $uniqueFileName
-                            Content Type: $contentType
-                            File Size: ${fileBytes.size} bytes
-                            Bucket: storage
-                        """.trimIndent()
+                               val debugInfo = """
+                                   DEBUG INFO:
+                                   Status Code: ${response.code()}
+                                   Error Body: $errorBody
+                                   File Name: $uniqueFileName
+                                   Content Type: $contentType
+                                   File Size: ${fileBytes.size} bytes
+                                   Full API URL: https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/storage/$uniqueFileName
+                                   Endpoint: /storage/v1/object/{bucketId}/{fileName}
+                                   Bucket: storage
+                               """.trimIndent()
                         
                         if (response.code() == 404 && errorBody.contains("Bucket")) {
                             // Try to create the storage bucket
@@ -125,13 +127,15 @@ class FileRepository {
                         Result.failure(Exception("Could not create bucket: $bucketError\n\n$debugInfo"))
                     }
                 } else {
-                    val debugInfo = """
-                        DEBUG INFO:
-                        Status Code: ${response.code()}
-                        Error Body: $errorBody
-                        File Name: $fileName
-                        Bucket: storage
-                    """.trimIndent()
+                           val debugInfo = """
+                               DEBUG INFO:
+                               Status Code: ${response.code()}
+                               Error Body: $errorBody
+                               File Name: $fileName
+                               Full API URL: https://gjihfsstquukbkespeae.supabase.co/storage/v1/object/storage/$fileName
+                               Endpoint: /storage/v1/object/{bucketId}/{fileName}
+                               Bucket: storage
+                           """.trimIndent()
                     Result.failure(Exception("Delete failed: $errorBody\n\n$debugInfo"))
                 }
             }
@@ -162,6 +166,7 @@ class FileRepository {
                         DEBUG INFO:
                         Status Code: ${response.code()}
                         Error Body: $errorBody
+                        Full API URL: http://10.0.2.2:3000/api/list
                         Endpoint: /api/list
                         Issue: Authentication failed - user may not be logged in or token expired
                         Solution: Please login again
@@ -172,6 +177,7 @@ class FileRepository {
                         DEBUG INFO:
                         Status Code: ${response.code()}
                         Error Body: $errorBody
+                        Full API URL: http://10.0.2.2:3000/api/list
                         Endpoint: /api/list
                     """.trimIndent()
                     Result.failure(Exception("List failed: $errorBody\n\n$debugInfo"))
