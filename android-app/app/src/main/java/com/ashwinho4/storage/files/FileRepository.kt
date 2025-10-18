@@ -150,7 +150,12 @@ class FileRepository {
     suspend fun listFiles(userId: String): Result<List<String>> {
         return try {
             // Call Supabase Storage API directly - list files with user ID prefix
-            val response = SupabaseClient.apiService.listFilesInFolder(userId, "storage")
+            val listRequest = com.ashwinho4.storage.ListFilesRequest(
+                prefix = userId,
+                limit = 100,
+                offset = 0
+            )
+            val response = SupabaseClient.apiService.listFilesInFolder("storage", listRequest)
             if (response.isSuccessful) {
                 val files = response.body() ?: emptyList()
                 // Return only the file names without the userId prefix

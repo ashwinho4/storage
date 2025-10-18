@@ -20,10 +20,10 @@ interface SupabaseApiService {
     @POST("/storage/v1/bucket")
     suspend fun createBucket(@Body bucket: CreateBucketRequest): Response<Unit>
     
-    @GET("/storage/v1/object/list/{folder}")
+    @POST("/storage/v1/object/list/{bucketId}")
     suspend fun listFilesInFolder(
-        @Path("folder") folder: String,
-        @Query("bucket") bucketId: String
+        @Path("bucketId") bucketId: String,
+        @Body request: ListFilesRequest
     ): Response<List<StorageFile>>
     
     @POST("/storage/v1/object/{bucketId}/{fileName}")
@@ -89,4 +89,10 @@ data class CreateBucketRequest(
     val id: String,
     val name: String,
     val public: Boolean = true
+)
+
+data class ListFilesRequest(
+    val prefix: String = "",
+    val limit: Int = 100,
+    val offset: Int = 0
 )
