@@ -49,7 +49,7 @@ class FileListActivity : AppCompatActivity() {
     
     private fun setupUI() {
         fileAdapter = FileAdapter { fileName ->
-            deleteFile(fileName)
+            removeFile(fileName)
         }
         
         binding.recyclerViewFiles.apply {
@@ -139,7 +139,7 @@ class FileListActivity : AppCompatActivity() {
         }
     }
     
-    private fun deleteFile(fileName: String) {
+    private fun removeFile(fileName: String) {
         lifecycleScope.launch {
             fileRepository.deleteFile(fileName)
                 .onSuccess {
