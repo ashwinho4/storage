@@ -575,11 +575,37 @@ Endpoint: /api/auth/signup
                 // Redirect user to checkout URL as specified in the new implementation
                 window.location.href = result.checkout_url;
             } else {
-                throw new Error(result.error || 'Failed to create payment session');
+                // Create detailed debug info for non-success responses
+                const debugInfo = `
+DEBUG INFO:
+Status Code: ${response.status}
+Error Message: ${result.error || 'Failed to create payment session'}
+Product ID: ${productId}
+Customer Email: ${this.currentUser?.email || 'Not logged in'}
+Endpoint: /api/payment/create-checkout
+Full Response: ${JSON.stringify(result, null, 2)}
+                `.trim();
+                
+                this.showToast(result.error || 'Failed to create payment session', 'error');
+                this.showDebugPopup('Payment Error', debugInfo);
+                return;
             }
         } catch (error) {
             console.error('Payment error:', error);
+            
+            // Create detailed debug info for payment errors
+            const debugInfo = `
+DEBUG INFO:
+Status Code: ${error.status || 'Unknown'}
+Error Message: ${error.message || 'Payment failed'}
+Product ID: ${productId}
+Customer Email: ${this.currentUser?.email || 'Not logged in'}
+Endpoint: /api/payment/create-checkout
+Response: ${JSON.stringify(result || {}, null, 2)}
+            `.trim();
+            
             this.showToast(error.message || 'Payment failed', 'error');
+            this.showDebugPopup('Payment Error', debugInfo);
         } finally {
             button.disabled = false;
             button.textContent = originalText;
