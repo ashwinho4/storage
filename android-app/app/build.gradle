@@ -3,6 +3,13 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+repositories {
+    google()
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
+}
+
 android {
     namespace 'com.ashwinho4.storage'
     compileSdk 34
@@ -46,9 +53,9 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui-ktx:2.7.6'
     
     // Supabase dependencies
-    implementation 'io.github.jan-tennert.supabase:postgrest-kt:2.4.0'
-    implementation 'io.github.jan-tennert.supabase:auth-kt:2.4.0'
-    implementation 'io.github.jan-tennert.supabase:storage-kt:2.4.0'
+    implementation 'io.github.jan-tennert.supabase:postgrest-kt:2.3.3'
+    implementation 'io.github.jan-tennert.supabase:auth-kt:2.3.3'
+    implementation 'io.github.jan-tennert.supabase:storage-kt:2.3.3'
     implementation 'io.ktor:ktor-client-android:2.3.7'
     implementation 'io.ktor:ktor-client-core:2.3.7'
     implementation 'io.ktor:ktor-utils:2.3.7'

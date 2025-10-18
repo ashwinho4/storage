@@ -26,7 +26,7 @@ class AuthRepository {
                 this.email = email
                 this.password = password
             }
-            _currentUser.value = result.user
+            result.user?.let { _currentUser.value = it }
             Result.success(result)
         } catch (e: Exception) {
             Result.failure(e)
@@ -39,7 +39,7 @@ class AuthRepository {
                 this.email = email
                 this.password = password
             }
-            _currentUser.value = result.user
+            result.user?.let { _currentUser.value = it }
             Result.success(result)
         } catch (e: Exception) {
             Result.failure(e)
