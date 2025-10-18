@@ -22,7 +22,7 @@ class FileListActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityFileListBinding
     private val authRepository = AuthRepository()
-    private val fileRepository = FileRepository()
+    private val fileRepository = FileRepository.getInstance()
     private val premiumRepository = PremiumRepository()
     private lateinit var fileAdapter: FileAdapter
     private var userProfile: UserProfile? = null

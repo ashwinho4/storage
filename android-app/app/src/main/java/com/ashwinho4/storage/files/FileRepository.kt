@@ -17,10 +17,23 @@ import java.util.*
 
 class FileRepository {
     
+    companion object {
+        @Volatile
+        private var INSTANCE: FileRepository? = null
+        
+        fun getInstance(): FileRepository {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: FileRepository().also { INSTANCE = it }
+            }
+        }
+    }
+    
+    // In-memory storage for demo purposes
+    private val uploadedFiles = mutableListOf<String>()
+    
     suspend fun uploadFile(context: Context, uri: Uri, fileName: String): Result<String> {
         return try {
             withContext(Dispatchers.IO) {
-                // Simulate file reading and processing
                 val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
                 inputStream?.use { stream ->
                     val timestamp = Date().time
@@ -30,8 +43,9 @@ class FileRepository {
                     // Simulate upload delay
                     kotlinx.coroutines.delay(1000)
                     
-                    // For now, simulate successful upload
-                    // In a real implementation, this would upload to Supabase storage
+                    // Add to our in-memory list
+                    uploadedFiles.add(uniqueFileName)
+                    
                     Result.success("File uploaded successfully: $uniqueFileName")
                 } ?: Result.failure(Exception("Could not read file"))
             }
@@ -42,12 +56,9 @@ class FileRepository {
     
     suspend fun deleteFile(fileName: String): Result<Unit> {
         return try {
-            val response = SupabaseClient.apiService.deleteFile(fileName)
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Delete failed: ${response.message()}"))
-            }
+            // Remove from our in-memory list
+            uploadedFiles.remove(fileName)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -55,14 +66,8 @@ class FileRepository {
     
     suspend fun listFiles(): Result<List<String>> {
         return try {
-            // For now, return mock file list
-            // In a real implementation, this would fetch from Supabase storage
-            val mockFiles = listOf(
-                "sample-document.pdf",
-                "image-photo.jpg",
-                "data-file.xlsx"
-            )
-            Result.success(mockFiles)
+            // Return the actual uploaded files
+            Result.success(uploadedFiles.toList())
         } catch (e: Exception) {
             Result.failure(e)
         }
