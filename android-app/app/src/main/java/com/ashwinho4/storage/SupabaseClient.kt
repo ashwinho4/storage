@@ -32,6 +32,10 @@ object SupabaseClient {
                     requestBuilder.addHeader("Authorization", "Bearer $token")
                 }
                 
+                // Debug logging
+                println("DEBUG: Making request to: ${original.url}")
+                println("DEBUG: Headers: apikey=${SUPABASE_ANON_KEY.take(20)}..., Authorization=${if (userToken != null) "Bearer ${userToken.take(20)}..." else "null"}")
+                
                 chain.proceed(requestBuilder.build())
             }
             .build()
