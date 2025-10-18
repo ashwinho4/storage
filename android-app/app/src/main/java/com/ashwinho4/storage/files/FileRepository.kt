@@ -39,14 +39,39 @@ class FileRepository {
                     // Create request body
                     val requestBody = fileBytes.toRequestBody(contentType.toMediaType())
                     
-                    // Upload to Supabase Storage
+                    // Try to upload to Supabase Storage
                     val response = SupabaseClient.apiService.uploadFile(uniqueFileName, requestBody)
                     
                     if (response.isSuccessful) {
                         Result.success("File uploaded successfully: $uniqueFileName")
                     } else {
+                        // If upload fails with 404, try to create the bucket first
                         val errorBody = response.errorBody()?.string() ?: "Upload failed"
-                        Result.failure(Exception("Upload failed: $errorBody"))
+                        if (response.code() == 404 && errorBody.contains("Bucket")) {
+                            // Try to create the storage bucket
+                            val bucketResponse = SupabaseClient.apiService.createBucket(
+                                com.ashwinho4.storage.CreateBucketRequest(
+                                    id = "storage",
+                                    name = "storage",
+                                    public = true
+                                )
+                            )
+                            
+                            if (bucketResponse.isSuccessful) {
+                                // Retry upload after creating bucket
+                                val retryResponse = SupabaseClient.apiService.uploadFile(uniqueFileName, requestBody)
+                                if (retryResponse.isSuccessful) {
+                                    Result.success("File uploaded successfully: $uniqueFileName")
+                                } else {
+                                    val retryError = retryResponse.errorBody()?.string() ?: "Upload failed after bucket creation"
+                                    Result.failure(Exception("Upload failed: $retryError"))
+                                }
+                            } else {
+                                Result.failure(Exception("Upload failed: Could not create bucket"))
+                            }
+                        } else {
+                            Result.failure(Exception("Upload failed: $errorBody"))
+                        }
                     }
                 } ?: Result.failure(Exception("Could not read file"))
             }

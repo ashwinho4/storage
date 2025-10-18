@@ -17,16 +17,19 @@ interface SupabaseApiService {
     suspend fun signOut(@Header("Authorization") token: String): Response<Unit>
     
     // Storage endpoints
-    @GET("/storage/v1/object/list/uploads")
+    @POST("/storage/v1/bucket")
+    suspend fun createBucket(@Body bucket: CreateBucketRequest): Response<Unit>
+    
+    @GET("/storage/v1/object/list/storage")
     suspend fun listFiles(): Response<List<StorageFile>>
     
-    @POST("/storage/v1/object/uploads/{fileName}")
+    @POST("/storage/v1/object/storage/{fileName}")
     suspend fun uploadFile(
         @Path("fileName") fileName: String,
         @Body file: RequestBody
     ): Response<Unit>
     
-    @DELETE("/storage/v1/object/uploads/{fileName}")
+    @DELETE("/storage/v1/object/storage/{fileName}")
     suspend fun deleteFile(@Path("fileName") fileName: String): Response<Unit>
     
     // Database endpoints
@@ -73,4 +76,10 @@ data class UserProfile(
     val email: String,
     val is_premium: Boolean = false,
     val premium_expiry_date: String? = null
+)
+
+data class CreateBucketRequest(
+    val id: String,
+    val name: String,
+    val public: Boolean = true
 )
